@@ -2,9 +2,10 @@
 textfiles/
 
 # Other data files
-datasets/
-models/
-outputs/
+full_songs/
+generated_html/
+input/
+output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
