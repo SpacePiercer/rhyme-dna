@@ -1,7 +1,17 @@
+# Instruction/documentation files
+textfiles/
+
+# Other data files
+datasets/
+models/
+outputs/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
 *$py.class
+*.pyc
+.ipynb_checkpoints/
 
 # C extensions
 *.so
