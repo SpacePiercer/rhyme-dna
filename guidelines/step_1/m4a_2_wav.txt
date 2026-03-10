@@ -1,0 +1,1 @@
+ffmpeg -i your_recording.m4a -ac 1 -ar 16000 -sample_fmt s16 input/twinkle.wav
