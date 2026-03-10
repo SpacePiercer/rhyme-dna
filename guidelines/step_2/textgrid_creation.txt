@@ -1,1 +1,0 @@
-mfa align input english_us_arpa english_us_arpa output --clean
