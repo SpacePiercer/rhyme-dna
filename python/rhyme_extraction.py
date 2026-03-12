@@ -1,24 +1,40 @@
-def extract_rhyme_unit(phonemes, debug=False):
+def extract_rhyme_unit(phonemes, mode="stressed", debug=False):
 
     stressed_index = None
 
+    # Find primary stress (1)
     for i in range(len(phonemes) - 1, -1, -1):
         if '1' in phonemes[i]:
             stressed_index = i
             break
 
+    # If no primary stress, fallback to secondary/unstressed
     if stressed_index is None:
         for i in range(len(phonemes) - 1, -1, -1):
             if '2' in phonemes[i] or '0' in phonemes[i]:
                 stressed_index = i
                 break
 
+    # If still none found
     if stressed_index is None:
         stressed_index = 0
 
-    rhyme_unit = phonemes[stressed_index:]
+    # --- Mode logic ---
+
+    if mode == "stressed":
+        rhyme_unit = phonemes[stressed_index:]
+
+    elif mode == "stressed_plus":
+        rhyme_unit = phonemes[stressed_index:]
+
+    elif mode == "entire_word":
+        rhyme_unit = phonemes[:]
+
+    else:
+        raise ValueError(f"Unknown rhyme mode: {mode}")
 
     if debug:
+        print("MODE:", mode)
         print("PHONEMES:", phonemes)
         print("STRESS INDEX:", stressed_index)
         print("RHYME UNIT:", rhyme_unit)
@@ -26,7 +42,7 @@ def extract_rhyme_unit(phonemes, debug=False):
     return rhyme_unit
 
 
-def extract_end_words(lyrics_path, word_to_phonemes):
+def extract_end_words(lyrics_path, word_to_phonemes, rhyme_mode="stressed"):
 
     result = []
 
@@ -48,7 +64,7 @@ def extract_end_words(lyrics_path, word_to_phonemes):
             continue
 
         phonemes = word_to_phonemes[end_word]
-        rhyme_unit = extract_rhyme_unit(phonemes)
+        rhyme_unit = extract_rhyme_unit(phonemes, mode=rhyme_mode)
 
         result.append({
             "line_index": i,

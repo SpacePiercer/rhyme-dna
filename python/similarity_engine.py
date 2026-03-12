@@ -1,6 +1,30 @@
 import itertools
 
-def rhyme_similarity(rhymeA, rhymeB):
+def phoneme_sequence_similarity(seqA, seqB):
+    
+    max_len = max(len(seqA), len(seqB))
+    
+    if max_len == 0:
+        return 0.0
+
+    matches = 0
+
+    for a, b in zip(seqA, seqB):
+        if a == b:
+            matches += 1
+
+    return matches / max_len
+
+
+def rhyme_similarity(rhymeA, rhymeB, mode="stressed"):
+
+    # --- MULTI-SYLLABLE MODES ---
+
+    if mode == "stressed_plus":
+        return longest_common_tail_similarity(rhymeA, rhymeB)
+
+    if mode == "entire_word":
+        return phoneme_sequence_similarity(rhymeA, rhymeB)
 
     # ----- VOWEL MATCH -----
     vowelA = rhymeA[0]
@@ -42,7 +66,7 @@ def rhyme_similarity(rhymeA, rhymeB):
     return similarity
 
 
-def compute_similarity_pairs(end_word_objects):
+def compute_similarity_pairs(end_word_objects, rhyme_mode="stressed"):
 
     similarity_results = []
 
@@ -54,7 +78,7 @@ def compute_similarity_pairs(end_word_objects):
         rhymeA = a["rhyme_unit"]
         rhymeB = b["rhyme_unit"]
 
-        score = rhyme_similarity(rhymeA, rhymeB)
+        score = rhyme_similarity(rhymeA, rhymeB, mode=rhyme_mode)
 
         similarity_results.append({
             "wordA": wordA,
@@ -88,3 +112,27 @@ def build_similarity_matrix(rhyme_candidates, similarity_pairs):
         matrix[wB][wA] = score
 
     return matrix
+
+
+def longest_common_tail_similarity(seqA, seqB):
+
+    i = len(seqA) - 1
+    j = len(seqB) - 1
+
+    matches = 0
+
+    while i >= 0 and j >= 0:
+
+        if seqA[i] == seqB[j]:
+            matches += 1
+            i -= 1
+            j -= 1
+        else:
+            break
+
+    max_len = max(len(seqA), len(seqB))
+
+    if max_len == 0:
+        return 0.0
+
+    return matches / max_len
