@@ -5,28 +5,35 @@ def cluster_rhymes(similarity_matrix, threshold=SIMILARITY_THRESHOLD):
     words = list(similarity_matrix.keys())
     clusters = {}
     cluster_labels = {}
+
+    visited = set()
     current_cluster = "A"
 
     for word in words:
 
-        if word in cluster_labels:
+        if word in visited:
             continue
 
-        clusters[current_cluster] = [word]
-        cluster_labels[word] = current_cluster
+        stack = [word]
+        clusters[current_cluster] = []
 
-        for other in words:
+        while stack:
 
-            if other == word:
+            w = stack.pop()
+
+            if w in visited:
                 continue
 
-            score = similarity_matrix[word][other]
+            visited.add(w)
+            clusters[current_cluster].append(w)
+            cluster_labels[w] = current_cluster
 
-            if score >= threshold and other not in cluster_labels:
-                clusters[current_cluster].append(other)
-                cluster_labels[other] = current_cluster
+            for other in words:
+                if similarity_matrix[w][other] >= threshold and other not in visited:
+                    stack.append(other)
 
-        current_cluster = chr(ord(current_cluster) + 1)
+        if clusters[current_cluster]:
+            current_cluster = chr(ord(current_cluster) + 1)
 
     return cluster_labels, clusters
 

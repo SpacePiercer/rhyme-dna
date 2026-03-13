@@ -1,19 +1,25 @@
 import itertools
 
+def normalize_phoneme(p):
+
+    # remove stress digits from ARPAbet vowels
+    return p.rstrip("012")
+
+
 def phoneme_sequence_similarity(seqA, seqB):
     
-    max_len = max(len(seqA), len(seqB))
+    min_len = min(len(seqA), len(seqB))
     
-    if max_len == 0:
+    if min_len == 0:
         return 0.0
 
     matches = 0
 
     for a, b in zip(seqA, seqB):
-        if a == b:
+        if normalize_phoneme(a) == normalize_phoneme(b):
             matches += 1
 
-    return matches / max_len
+    return matches / min_len
 
 
 def rhyme_similarity(rhymeA, rhymeB, mode="stressed"):
@@ -123,16 +129,16 @@ def longest_common_tail_similarity(seqA, seqB):
 
     while i >= 0 and j >= 0:
 
-        if seqA[i] == seqB[j]:
+        if normalize_phoneme(seqA[i]) == normalize_phoneme(seqB[j]):
             matches += 1
             i -= 1
             j -= 1
         else:
             break
 
-    max_len = max(len(seqA), len(seqB))
+    min_len = min(len(seqA), len(seqB))
 
-    if max_len == 0:
+    if min_len == 0:
         return 0.0
 
-    return matches / max_len
+    return matches / min_len
