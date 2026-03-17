@@ -1,12 +1,12 @@
 # Instruction/documentation files
-textfiles/
+#textfiles/
 
 # Other data files
-full_songs/
-generated_html/
-input/
-output/
-m4a/
+#full_songs/
+#generated_html/
+#input/
+#output/
+#m4a/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

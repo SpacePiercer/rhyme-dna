@@ -1,0 +1,5 @@
+Put everything from 'input/current_input' & 'output/current_output' into the 'backup' folders
+
+
+
+ffmpeg -i m4a/input.m4a -ac 1 -ar 16000 -sample_fmt s16 input/current_input/input.wav

@@ -24,52 +24,20 @@ def phoneme_sequence_similarity(seqA, seqB):
 
 def rhyme_similarity(rhymeA, rhymeB, mode="stressed"):
 
-    # --- MULTI-SYLLABLE MODES ---
-
-    if mode == "stressed_plus":
+    # Both "stressed" and "stressed_plus" use tail similarity.
+    #
+    # The old vowel/coda/length weighted scorer assumed the first phoneme
+    # of the rhyme unit is always the stressed vowel — but for multi-syllable
+    # words like "underground" [AH1 N D ER0 G R AW2 N D] this is wrong:
+    # the rhyming vowel is buried at the tail (AW2), not at index 0 (AH1).
+    # Tail similarity correctly finds the shared ending regardless of length.
+    if mode in ("stressed", "stressed_plus"):
         return longest_common_tail_similarity(rhymeA, rhymeB)
 
     if mode == "entire_word":
         return phoneme_sequence_similarity(rhymeA, rhymeB)
 
-    # ----- VOWEL MATCH -----
-    vowelA = rhymeA[0]
-    vowelB = rhymeB[0]
-
-    vowel_score = 1.0 if vowelA == vowelB else 0.0
-
-
-    # ----- CODA OVERLAP -----
-    codaA = rhymeA[1:]
-    codaB = rhymeB[1:]
-
-    if len(codaA) == 0 and len(codaB) == 0:
-        coda_score = 1.0
-    else:
-        overlap = len(set(codaA) & set(codaB))
-        max_len = max(len(codaA), len(codaB))
-
-        if max_len == 0:
-            coda_score = 0
-        else:
-            coda_score = overlap / max_len
-
-
-    # ----- LENGTH SIMILARITY -----
-    lenA = len(rhymeA)
-    lenB = len(rhymeB)
-
-    length_score = 1 - abs(lenA - lenB) / max(lenA, lenB)
-
-
-    # ----- WEIGHTED FINAL SCORE -----
-    similarity = (
-        0.6 * vowel_score +
-        0.3 * coda_score +
-        0.1 * length_score
-    )
-
-    return similarity
+    raise ValueError(f"Unknown rhyme mode: {mode}")
 
 
 def compute_similarity_pairs(end_word_objects, rhyme_mode="stressed"):
@@ -121,6 +89,16 @@ def build_similarity_matrix(rhyme_candidates, similarity_pairs):
 
 
 def longest_common_tail_similarity(seqA, seqB):
+    """
+    Score how well two rhyme units match from the end (tail) inward.
+
+    Uses min_len as denominator — a short word rhyming perfectly with the
+    tail of a long word should score 1.0, not be penalised for the length
+    difference. Example: 'mound' [AW1 N D] vs 'underground' [... AW2 N D]
+    share a 3-phoneme tail; min_len=3, score = 3/3 = 1.0.
+
+    Stress digits are stripped before comparison so AW1 == AW2.
+    """
 
     i = len(seqA) - 1
     j = len(seqB) - 1
