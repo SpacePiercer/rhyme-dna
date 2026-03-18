@@ -53,9 +53,10 @@ the algorithm.
 ### Rule 2 — Pseudo-code after every code block
 
 After every code chunk you produce, add a plain-English pseudo-code summary written
-for a second-year university student. Its purpose is twofold: it lets me verify you
-are doing the right thing, and it helps me understand the code without reading every
-line.
+for a second-year university student. Do NOT include it as a part of the produced 
+code, instead, make it in a separate section below the code window in your message. 
+Its purpose is twofold: it lets me verify you are doing the right thing, and it 
+helps me understand the code without reading every line.
 
 Format:
 ```
