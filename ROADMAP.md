@@ -56,28 +56,50 @@ The next chat always picks up the first `[ ]` milestone.
   implemented
 - `get_threshold()` wired into notebook Section 6
 
+### [x] Milestone 7 — Internal Rhymes
+
+- `DETECTION_MODE` config variable: `"end_only"` / `"full_line"`
+- `extract_rhyme_candidates()` replacing `extract_end_words()` as the primary function
+- `"full_line"` mode extracts every word in every line with no word-level filter
+- Empty phoneme / empty rhyme unit guard (data quality, not linguistic filter)
+- `is_line_end` and `word_index` fields added to candidate dicts
+- `extract_end_words()` retained as a backwards-compatibility wrapper
+- `generate_rhyme_html()` rewritten to group candidates by line and render each
+  line once with all highlighted words inline — fixed staircase/repetition bug
+- `DETECTION_MODE` passed through to `generate_rhyme_html()` from notebook Section 7
+- Threshold tuning: `stressed_plus` threshold too permissive for full word pool;
+  use `"stressed"` mode at `0.7` threshold for `"full_line"` mode
+- Test verse: Eminem "Ja shit" quatrain — dense internal `-it` rhyme chain
+
 ---
 
 ## Upcoming
 
-### [ ] Milestone 7 — Internal Rhymes
+### [ ] Milestone 8 — Intelligent Rhyme Rendering
 
-**Goal:** detect rhymes on all words within a line, not just end-of-line words.
+**Goal:** make the HTML visualisation reflect actual rhyme craft rather than just
+cluster membership. Two core ideas:
 
 Subgoals:
-- Add `DETECTION_MODE` toggle: `"end_only"` (current) vs `"full_line"`
-- In `"full_line"` mode, extract rhyme candidates from every content word in every line
-- Filter out function words (articles, prepositions, conjunctions) — these produce
-  noise and are rarely part of intentional rhyme schemes
-- Update `generate_rhyme_html()` to highlight mid-line words, not just line endings
-- Test on the existing verse; add a second test verse with clear internal rhymes
+- **Highlight rhyme units, not whole words** — wrap only the phoneme substring that
+  participates in the rhyme (e.g. `-ound` in `underground`, not the whole word).
+  Requires mapping phoneme indices back to character positions using TextGrid timecodes.
+- **Cluster quality filter at render time** — only render a cluster if it meets both
+  conditions:
+  1. Shared rhyme unit is ≥ 2 phonemes deep
+  2. Either: ≥ 2 members appear across ≥ 2 different lines with similar positional
+     alignment (word position relative to line start/end); OR: ≥ 3 members total
+- **Singleton suppression** — clusters of size 1 are never highlighted; they
+  self-filter through the math without any extraction-time word filtering
+- Test on both the existing verse and the Eminem "Ja shit" quatrain
 
-**Why this matters:** end-rhyme detection misses the majority of rap rhyme craft.
-Internal rhymes are where Eminem's Relapse schemes actually live.
+**Why this matters:** whole-word highlighting obscures where the rhyme actually lives.
+Positional filtering catches intentional vertical alignment (the visual signature of
+a real rhyme scheme) and suppresses coincidental phoneme matches.
 
 ---
 
-### [ ] Milestone 8 — Slant & Phoneme-Class Similarity
+### [ ] Milestone 9 — Slant & Phoneme-Class Similarity
 
 **Goal:** detect near-rhymes (slant rhymes) by grouping phonemes into classes.
 
@@ -96,7 +118,7 @@ reflect actual rhyme sophistication.
 
 ---
 
-### [ ] Milestone 9 — MFA Limitation Evaluation
+### [ ] Milestone 10 — MFA Limitation Evaluation
 
 **Goal:** stress-test the pipeline on real rap audio and identify where MFA fails.
 
@@ -112,7 +134,7 @@ Subgoals:
 
 ---
 
-### [ ] Milestone 10 — Rhyme Complexity Scoring
+### [ ] Milestone 11 — Rhyme Complexity Scoring
 
 **Goal:** produce a numeric score per verse reflecting rhyme density and sophistication.
 
@@ -127,7 +149,7 @@ Subgoals:
 
 ---
 
-### [ ] Milestone 11 — Structural Refactor for Modularity
+### [ ] Milestone 12 — Structural Refactor for Modularity
 
 **Goal:** separate the pipeline into clean modules ready for API wrapping.
 
@@ -140,10 +162,14 @@ Subgoals:
 - Add a thin CLI entry point (`python -m versedna analyse input.txt output.TextGrid`)
 - Write module-level docstrings and a `README.md` for each module
 - Notebook becomes a demo/testing surface only — no pipeline logic inside cells
+- **Upgrade evaluation to pairwise cluster identity** — instead of comparing cluster
+  letters directly, check whether two words share a label. Eliminates fragility caused
+  by cluster letter shifts when the word pool changes (e.g. switching between
+  `"end_only"` and `"full_line"` modes).
 
 ---
 
-### [ ] Milestone 12 — Phoneme-Stream Pipeline (separate repo)
+### [ ] Milestone 13 — Phoneme-Stream Pipeline (separate repo)
 
 **Goal:** implement the word-boundary-free phoneme-stream architecture as a parallel
 system to the word-based pipeline.
@@ -161,7 +187,7 @@ the word-based system.
 
 ---
 
-## Long-term vision (post-Milestone 12)
+## Long-term vision (post-Milestone 13)
 
 - Web app with song URL input → rhyme scheme visualisation output
 - Custom audio-to-phoneme model (to replace MFA for non-standard pronunciations)

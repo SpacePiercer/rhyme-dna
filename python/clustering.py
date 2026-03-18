@@ -8,7 +8,7 @@ SIMILARITY_THRESHOLD = 0.7
 # so a perfect tail match on a two-syllable word scores ~0.5 against
 # a one-syllable word. Lowering the threshold captures these correctly
 # without over-merging unrelated clusters (cross-cluster scores stay at 0.0).
-SIMILARITY_THRESHOLD_STRESSED_PLUS = 0.5
+SIMILARITY_THRESHOLD_STRESSED_PLUS = 0.7
 
 
 def get_threshold(rhyme_mode):

@@ -70,7 +70,7 @@ TextGrid  (words tier + phones tier, with timecodes)
        ↓
 word_to_phonemes dict  (built in Section 3 of notebook)
        ↓
-extract_end_words()  →  rhyme candidates per line
+extract_rhyme_candidates()  →  rhyme candidates (end-only or full-line)
        ↓
 extract_rhyme_unit()  →  rhyme unit per word
        ↓
@@ -112,9 +112,10 @@ Examples:
 - `tonight` → `[AH0, N, AY1, T]`     (preceding vowel AH0 found at index 1)
 - `delight` → `[IH0, L, AY1, T]`     (preceding vowel IH0 found at index 1)
 
-Threshold: 0.5  (lower because longer units make a perfect tail match score ~0.5
-against a shorter unit; cross-cluster pairs still score 0.0 so there is no
-over-merging risk at this threshold)
+Threshold: 0.5 for `"end_only"` mode. Note: this threshold is too permissive when
+used with `"full_line"` mode — the larger word pool produces shallow tail matches
+(e.g. `N D` shared between `and` and `mound`) that clear the 0.5 bar incorrectly.
+Use `"stressed"` mode at threshold 0.7 when running `"full_line"` detection.
 
 ### `"entire_word"`
 
@@ -123,6 +124,40 @@ Rhyme unit = full phoneme sequence of the word. Uses `phoneme_sequence_similarit
 exact-rhyme detection on short words.
 
 Threshold: 0.7
+
+---
+
+## DETECTION_MODE options
+
+Two modes are available via the `DETECTION_MODE` config variable in Section 1 of the
+notebook.
+
+### `"end_only"` (original behaviour)
+
+Only the last word of each line is treated as a rhyme candidate. This is the correct
+mode for detecting end-rhyme schemes (AABB, ABAB, etc.).
+
+### `"full_line"`
+
+Every word in every line is treated as a rhyme candidate. No word-level filter is
+applied — not even for grammatically insignificant words like "it", "and", "the".
+
+**Reason for no filter:** function words and pronouns can be the backbone of an
+intentional rhyme scheme. The canonical example is Eminem's "Ja shit" quatrain, where
+"it" (an unstressed pronoun) is the rhyming unit across every line:
+`squash it → stop it → crossed it → lost it → Nas shit`. Any word-level filter would
+destroy this detection.
+
+Noise from short or phonetically weak words is handled downstream at the
+**visualisation layer** (Milestone 8), not here. Words with no matching cluster
+partners naturally become singletons and are suppressed at render time.
+
+The only guard applied at extraction time is a **data quality check**: words with an
+empty phoneme list or an empty rhyme unit are skipped. This handles MFA alignment
+failures, not linguistic filtering.
+
+**Recommended mode pairing:** `"full_line"` + `"stressed"` + threshold `0.7`.
+`"stressed_plus"` at threshold `0.5` over-merges when the candidate pool is large.
 
 ---
 
@@ -204,6 +239,45 @@ in length (0 consonants for `around`, 2 for `flight`, 3 for potential clusters).
 Walking back to the previous *vowel* is linguistically principled — it captures the
 full preceding syllable nucleus regardless of how many consonants precede it.
 
+### `extract_rhyme_candidates()` replaces `extract_end_words()` as the primary function
+
+**Decision:** `extract_end_words()` is retained as a backwards-compatibility wrapper
+but all new code calls `extract_rhyme_candidates()` directly.
+
+**New fields in candidate dicts:**
+- `word_index` — position of the word within its line (0-based)
+- `is_line_end` — boolean, True if this word is the last word of its line
+
+These fields are used downstream by the visualisation layer (Milestone 8) to
+distinguish end-rhymes from internal rhymes and to reason about positional alignment.
+
+---
+
+## html_generation.py — key decisions
+
+### `generate_rhyme_html()` now accepts `detection_mode` parameter
+
+**Problem:** the original function rendered one candidate per line — correct for
+`"end_only"` but broken for `"full_line"`. With multiple candidates per line it
+repeated the line once per candidate and truncated each line at the highlighted word,
+producing a staircase effect.
+
+**Fix:** candidates are first grouped by `line_index`. Each line is then rendered
+exactly once. In `"full_line"` mode, words are walked left to right and each candidate
+word is wrapped in its cluster colour span inline. In `"end_only"` mode, original
+behaviour is preserved unchanged.
+
+---
+
+## evaluation.py — known limitation
+
+`expected_clusters` in the notebook is fragile: it stores cluster *letters* (A, B, C…)
+which shift whenever the word pool changes (e.g. switching between `"end_only"` and
+`"full_line"` modes). Rather than updating the dict every time the mode changes, the
+evaluation is left as-is for now. This will be replaced in Milestone 12 with a
+**pairwise cluster identity** check: instead of comparing letters, the evaluator asks
+"do these two words share a label?" — which is stable across any pool size or mode.
+
 ---
 
 ## Milestone progress summary
@@ -227,57 +301,66 @@ full preceding syllable nucleus regardless of how many consonants precede it.
 - `extract_rhyme_unit()` extended with mode logic
 - `SIMILARITY_THRESHOLD_STRESSED_PLUS` constant introduced
 
-### Intra-milestone fixes (introduced during this conversation)
-
-These fixes were made after Milestone 6 was nominally complete, correcting bugs
-discovered during testing.
+### Intra-milestone fixes (between M6 and M7)
 
 1. **`longest_common_tail_similarity` denominator** — changed from `max_len` to
    `min_len`. Affected file: `similarity_engine.py`.
 
 2. **`rhyme_similarity` routing** — `"stressed"` mode now uses
    `longest_common_tail_similarity` instead of the broken weighted vowel/coda/length
-   scorer. The weighted scorer assumed index 0 of the rhyme unit is always the stressed
-   vowel, which fails for multi-syllable words. Affected file: `similarity_engine.py`.
+   scorer. Affected file: `similarity_engine.py`.
 
-3. **`"stressed_plus"` extraction implemented** — previously both `"stressed"` and
-   `"stressed_plus"` ran identical code (a copy-paste placeholder). `"stressed_plus"`
-   now correctly walks back to the preceding vowel. Affected file: `rhyme_extraction.py`.
+3. **`"stressed_plus"` extraction implemented** — previously a copy-paste placeholder.
+   Affected file: `rhyme_extraction.py`.
 
-4. **`get_threshold()` helper added** — `clustering.py` now exports this function and
-   the notebook Section 6 uses it instead of the hardcoded `SIMILARITY_THRESHOLD`
-   constant, ensuring the correct threshold is applied automatically for any mode.
+4. **`get_threshold()` helper added** — `clustering.py` now exports this function.
    Affected files: `clustering.py`, `rhyme-DNA.ipynb`.
 
----
+### Milestone 7 — Internal Rhymes
 
-## Test results after all intra-milestone fixes
+**What was built:**
 
-Input verse:
+- `DETECTION_MODE` config variable added to Section 1 of the notebook
+- `extract_rhyme_candidates()` added to `rhyme_extraction.py` as the new primary
+  extraction function; `extract_end_words()` kept as backwards-compatible wrapper
+- No word-level filter in `"full_line"` mode — all words extracted as candidates
+- Data quality guards only: skip empty phoneme list, skip empty rhyme unit
+- `word_index` and `is_line_end` fields added to all candidate dicts
+- `generate_rhyme_html()` rewritten: groups by `line_index`, renders each line once,
+  walks words left-to-right wrapping candidates in colour spans
+- `DETECTION_MODE` threaded through from notebook Section 1 to Section 7
+
+**Key decisions:**
+
+- No function word filter — Eminem "Ja shit" example proves short unstressed words
+  can be the primary rhyming unit. Filter noise at render time (Milestone 8) instead.
+- `"stressed_plus"` threshold (0.5) too permissive for `"full_line"` mode — shallow
+  tail matches (e.g. `N D` in `and` vs `mound`) over-merge at that threshold.
+  Recommended pairing: `"full_line"` + `"stressed"` + threshold `0.7`.
+- `expected_clusters` evaluation left as-is; will be replaced with pairwise identity
+  check in Milestone 12.
+
+**Test verses:**
 ```
 I found the sound of the underground
 The crowd was loud and proud around the mound
 A light at night ignites the kite in flight
 The sight of white delight shines bright tonight
 ```
-
-Expected clusters: A = {underground, mound}, B = {flight, tonight}
-
-| Mode           | Accuracy |
-|----------------|----------|
-| stressed       | 4/4 ✓    |
-| stressed_plus  | 4/4 ✓    |
+```
+That Ja shit I tried to squash it it was too late to stop it
+Theres a certain line you just dont cross and he crossed it
+I heard him say Hailies name on a song and I just lost it
+It was crazy the shit went way beyond some Jay Z and Nas shit
+```
 
 ---
 
 ## Open questions / next steps
 
-- Internal rhymes (Milestone 7): expand from end-of-line words to all words per line.
-  Toggle: `mode = end_only | full_line`. This is where the Relapse-style schemes become
-  detectable in the word-based pipeline.
-- Phoneme-stream repo: separate development track. Word boundaries dissolved; rhyme
-  patterns found in the raw phoneme sequence first, then mapped back to text.
-- Rhyme grading / complexity scoring: not yet started. Long-term goal is a numeric
-  score per verse reflecting density, length, and sophistication of rhyme schemes.
-- Language support: English only for now (MFA + ARPAbet). Other languages require
-  different acoustic models. Future plan to train a custom audio-to-phoneme model.
+- Milestone 8: intelligent rendering — highlight rhyme units not whole words,
+  singleton suppression, cluster quality filter based on phoneme depth and
+  positional alignment.
+- Milestone 12: replace letter-based evaluation with pairwise cluster identity check.
+- Phoneme-stream repo: separate development track.
+- Language support: English only for now.
