@@ -55,8 +55,9 @@ the algorithm.
 After every code chunk you produce, add a plain-English pseudo-code summary written
 for a second-year university student. Do NOT include it as a part of the produced 
 code, instead, make it in a separate section below the code window in your message. 
-Its purpose is twofold: it lets me verify you are doing the right thing, and it 
-helps me understand the code without reading every line.
+Divide the two resulted sections by a pharase: "Here's the PSEUDOCODE version of the 
+code chunk above". Its purpose is twofold: it lets me verify you are doing the right 
+thing, and it helps me understand the code without reading every line.
 
 Format:
 ```

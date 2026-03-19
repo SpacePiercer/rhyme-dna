@@ -337,7 +337,7 @@ evaluation is left as-is for now. This will be replaced in Milestone 13 with a
   tail matches (e.g. `N D` in `and` vs `mound`) over-merge at that threshold.
   Recommended pairing: `"full_line"` + `"stressed"` + threshold `0.7`.
 - `expected_clusters` evaluation left as-is; will be replaced with pairwise identity
-  check in Milestone 13.
+  check in Milestone 14.
 
 **Test verses:**
 ```
@@ -352,8 +352,6 @@ Theres a certain line you just dont cross and he crossed it
 I heard him say Hailies name on a song and I just lost it
 It was crazy the shit went way beyond some Jay Z and Nas shit
 ```
-
----
 
 ### Milestone 8 — Intelligent Rhyme Rendering
 
@@ -381,7 +379,7 @@ It was crazy the shit went way beyond some Jay Z and Nas shit
 - **Filter at render time, not extraction time** — consistent with the Milestone 7
   decision not to filter function words at extraction time. All candidates flow
   through the pipeline; the render layer decides what is worth showing. This keeps
-  the pipeline data complete for scoring and evaluation (Milestone 12).
+  the pipeline data complete for scoring and evaluation (Milestone 13).
 - **Safe fallback on alignment failure** — `find_rhyme_suffix_span()` returns
   `(0, len(word))` (whole-word highlight) on any alignment failure. Never crashes,
   never silently drops a highlight.
@@ -399,15 +397,75 @@ threshold 0.7):**
 - Suffix highlighting confirmed: e.g. `under`**`ground`**, `a`**`round`**,
   `m`**`ound`** — prefix unstyled, rhyming suffix coloured
 
+### Milestone 9 — Slant Rhyme Detection
+
+**What was built:**
+
+- `PHONEME_CLASSES` table added to `similarity_engine.py` — maps every ARPAbet
+  symbol (stress digits stripped) to a fine-grained articulatory class (e.g.
+  `"stop_alveolar"`, `"vowel_front_high"`). Voiced/unvoiced pairs (T/D, S/Z,
+  P/B, F/V) share the same class so they score partially against each other.
+- `_SUPERCLASS` table added — maps each fine class to a broader group (e.g.
+  `"vowel_front_high"` and `"vowel_front_mid"` both map to `"vowel_front"`),
+  enabling a second tier of partial credit for related-but-not-identical phonemes.
+- Two score constants defined:
+  - `SAME_CLASS_SCORE = 0.7` (same articulatory class, e.g. T/D)
+  - `SAME_SUPERCLASS_SCORE = 0.4` (same broad family, e.g. IY/EY)
+- `phoneme_similarity(p1, p2)` added to `similarity_engine.py` — returns 1.0
+  (identical), 0.7 (same class), 0.4 (same superclass), or 0.0 (unrelated).
+- `longest_common_tail_similarity()` upgraded — replaces exact-match comparison
+  with `phoneme_similarity()`. Walk continues as long as score >= 0.4; accumulates
+  fractional scores; divides by min_len as before.
+
+**Spot-check results (manually supplied rhyme units):**
+
+| Pair | Score | Type |
+|---|---|---|
+| light / night | 1.000 | Perfect |
+| found / mound | 1.000 | Perfect |
+| late / made | 0.850 | Slant (T/D) |
+| face / days | 0.850 | Slant (S/Z) |
+| beat / bit | 0.850 | Slant (IY/IH) |
+| fate / feet | 0.700 | Slant (EY/IY) |
+| light / found | 0.350 | Unrelated (below threshold) |
+| the / mound | 0.000 | Unrelated |
+
+**Regression result (sound/underground verse, `"stressed"` mode, `"full_line"`
+detection, threshold 0.7, min_phonemes=2):**
+
+- `B`: found, sound, underground, around, mound (-ound) ✓
+- `D`: of, was (weak AH slant — acceptable) ✓
+- `E`: crowd, loud, proud (-oud) ✓
+- `G`: light, night, kite, flight, sight, white, delight, bright, tonight (-ight) ✓
+
+All three core clusters from M8 preserved. Cluster labels shifted by one letter
+due to `of`/`was` joining cluster D — cosmetic only.
+
+**Key decisions:**
+
+- **Partial credit on consonants accepted** — voiced/unvoiced pairs (T/D, S/Z)
+  get 0.7. An attempt to restrict partial credit to vowels only was rejected
+  because it broke classic slant rhymes like `late`/`made` (T vs D at coda).
+- **`of`/`was` slant cluster accepted** — the scorer correctly detects their
+  shared `AH` vowel. These are weak but real slant rhymes; filtering them out
+  would require a quality gate change that risks blocking legitimate weak clusters
+  elsewhere. Left as-is.
+- **Walk stop condition: score < 0.4** — a score below `SAME_SUPERCLASS_SCORE`
+  means the phonemes are from entirely different families. Walking further would
+  only accumulate zeros, so stopping is correct.
+- **`debug=False` parameter added to `longest_common_tail_similarity()`** —
+  prints per-position pair scores when enabled. Follows project convention.
+
 ---
 
 ## Open questions / next steps
 
-- Milestone 9: slant rhyme detection via phoneme-class similarity. Will also fix
-  the under-scoring of related clusters (e.g. `loud` / `mound` scores 0.5 because
-  the tail walk stops at the inserted nasal `N`).
 - Milestone 10: related-cluster colour mapping — clusters that are phonetically
-  similar receive visually related hues. Depends on Milestone 9's improved scorer.
+  similar receive visually related hues. Depends on Milestone 9's scorer.
+- Milestone 11: insertion-tolerant tail scoring — skip inserted consonants
+  (e.g. the N in `-ound` vs `-oud`) to detect cross-cluster slant rhymes like
+  `proud`/`mound`. The loud/mound under-scoring noted in M8 was NOT fixed in M9
+  and is deferred here.
 - Milestone 13: replace letter-based evaluation with pairwise cluster identity check.
 - Phoneme-stream repo: separate development track.
 - Language support: English only for now.

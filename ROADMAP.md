@@ -85,29 +85,25 @@ The next chat always picks up the first `[ ]` milestone.
 - Test result: `-ound` (5 members), `-oud` (3 members), `-ight` (9 members) pass;
   all singletons and shallow clusters blocked
 
----
-
-## Upcoming
-
-### [ ] Milestone 9 — Slant & Phoneme-Class Similarity
+### [x] Milestone 9 — Slant & Phoneme-Class Similarity
 
 **Goal:** detect near-rhymes (slant rhymes) by grouping phonemes into classes.
 
-Subgoals:
-- Define phoneme class map (stops, fricatives, nasals, liquids, glides, vowel families)
-- Upgrade `rhyme_similarity()` to give partial credit for class matches:
-  e.g. T and D (both stops) score higher than T and S (stop vs fricative)
-- Make class weights configurable
-- Evaluate: does this correctly identify slant rhymes without over-merging
-  unrelated clusters?
-- Test on a verse with known slant rhymes
+**What was done:**
+- Defined phoneme class map (stops, fricatives, nasals, liquids, glides, vowel families)
+- Upgraded `longest_common_tail_similarity()` to give partial credit for class matches:
+  e.g. T and D (both alveolar stops) score 0.7; T and S (stop vs fricative) score 0.0
+- Class weights defined as constants (`SAME_CLASS_SCORE = 0.7`, `SAME_SUPERCLASS_SCORE = 0.4`)
+- Verified slant rhyme detection without over-merging unrelated clusters
+- Tested on the sound/underground verse with known rhyme families
 
-**Why this matters:** rap frequently uses near-rhymes as intentional craft. Treating
+**Why this mattered:** rap frequently uses near-rhymes as intentional craft. Treating
 them as non-rhymes produces false negatives. This is where the system starts to
-reflect actual rhyme sophistication. The improved scorer also fixes under-scoring of
-related clusters (e.g. `-oud` vs `-ound`) needed by Milestone 10.
+reflect actual rhyme sophistication.
 
 ---
+
+## Upcoming
 
 ### [ ] Milestone 10 — Related-Cluster Colour Mapping
 
@@ -134,7 +130,29 @@ the similarity function understands phoneme classes.
 
 ---
 
-### [ ] Milestone 11 — MFA Limitation Evaluation
+### [ ] Milestone 11 — Insertion-Tolerant Tail Scoring
+
+**Goal:** upgrade `longest_common_tail_similarity()` to skip inserted consonants
+when walking tails, so that clusters like `-oud` and `-ound` can be detected as
+cross-cluster slant rhymes.
+
+Subgoals:
+- Design an insertion-skip mechanism: when the tail walk hits a mismatch, check
+  whether skipping one phoneme on either side recovers a match
+- Score the insertion penalty (skipped phoneme should reduce the total score)
+- Verify that `proud`/`mound` scores above 0.7 with insertion tolerance enabled
+- Verify that unrelated clusters are not over-merged
+- Calibrate penalty weight so the feature is togglable without breaking M9 results
+
+**Why this matters:** `-oud` / `-ound` are the canonical example of a real rhyme
+relationship that the current tail walk misses because the inserted nasal `N` halts
+the walk before `AW` can match `AW`. Noted as unresolved in M8 and M9.
+
+**Depends on:** Milestone 9.
+
+---
+
+### [ ] Milestone 12 — MFA Limitation Evaluation
 
 **Goal:** stress-test the pipeline on real rap audio and identify where MFA fails.
 
@@ -150,7 +168,7 @@ Subgoals:
 
 ---
 
-### [ ] Milestone 12 — Rhyme Complexity Scoring
+### [ ] Milestone 13 — Rhyme Complexity Scoring
 
 **Goal:** produce a numeric score per verse reflecting rhyme density and sophistication.
 
@@ -165,7 +183,7 @@ Subgoals:
 
 ---
 
-### [ ] Milestone 13 — Structural Refactor for Modularity
+### [ ] Milestone 14 — Structural Refactor for Modularity
 
 **Goal:** separate the pipeline into clean modules ready for API wrapping.
 
@@ -185,7 +203,7 @@ Subgoals:
 
 ---
 
-### [ ] Milestone 14 — Phoneme-Stream Pipeline (separate repo)
+### [ ] Milestone 15 — Phoneme-Stream Pipeline (separate repo)
 
 **Goal:** implement the word-boundary-free phoneme-stream architecture as a parallel
 system to the word-based pipeline.
@@ -203,7 +221,7 @@ the word-based system.
 
 ---
 
-## Long-term vision (post-Milestone 14)
+## Long-term vision (post-Milestone 15)
 
 - Web app with song URL input → rhyme scheme visualisation output
 - Custom audio-to-phoneme model (to replace MFA for non-standard pronunciations)
