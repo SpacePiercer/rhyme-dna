@@ -71,33 +71,23 @@ The next chat always picks up the first `[ ]` milestone.
   use `"stressed"` mode at `0.7` threshold for `"full_line"` mode
 - Test verse: Eminem "Ja shit" quatrain — dense internal `-it` rhyme chain
 
+### [x] Milestone 8 — Intelligent Rhyme Rendering
+
+- `find_rhyme_suffix_span()` added to `html_generation.py` — greedy phoneme-to-grapheme
+  aligner; returns `(start_char, end_char)` of the rhyming suffix within the word string
+- `filter_clusters()` added to `html_generation.py` — render-time quality gate:
+  passes clusters with rhyme unit depth >= 2 phonemes AND (>= 2 members across >= 2
+  lines OR >= 3 members total); singletons suppressed automatically
+- `generate_rhyme_html()` updated: calls both helpers, adds `min_phonemes` and `debug`
+  parameters, fully backwards-compatible
+- Grapheme aligner chosen over TextGrid timecodes — timecodes don't map to character
+  positions directly; aligner is simpler, self-contained, and equally accurate
+- Test result: `-ound` (5 members), `-oud` (3 members), `-ight` (9 members) pass;
+  all singletons and shallow clusters blocked
+
 ---
 
 ## Upcoming
-
-### [ ] Milestone 8 — Intelligent Rhyme Rendering
-
-**Goal:** make the HTML visualisation reflect actual rhyme craft rather than just
-cluster membership. Two core ideas:
-
-Subgoals:
-- **Highlight rhyme units, not whole words** — wrap only the phoneme substring that
-  participates in the rhyme (e.g. `-ound` in `underground`, not the whole word).
-  Requires mapping phoneme indices back to character positions using TextGrid timecodes.
-- **Cluster quality filter at render time** — only render a cluster if it meets both
-  conditions:
-  1. Shared rhyme unit is ≥ 2 phonemes deep
-  2. Either: ≥ 2 members appear across ≥ 2 different lines with similar positional
-     alignment (word position relative to line start/end); OR: ≥ 3 members total
-- **Singleton suppression** — clusters of size 1 are never highlighted; they
-  self-filter through the math without any extraction-time word filtering
-- Test on both the existing verse and the Eminem "Ja shit" quatrain
-
-**Why this matters:** whole-word highlighting obscures where the rhyme actually lives.
-Positional filtering catches intentional vertical alignment (the visual signature of
-a real rhyme scheme) and suppresses coincidental phoneme matches.
-
----
 
 ### [ ] Milestone 9 — Slant & Phoneme-Class Similarity
 
@@ -114,11 +104,37 @@ Subgoals:
 
 **Why this matters:** rap frequently uses near-rhymes as intentional craft. Treating
 them as non-rhymes produces false negatives. This is where the system starts to
-reflect actual rhyme sophistication.
+reflect actual rhyme sophistication. The improved scorer also fixes under-scoring of
+related clusters (e.g. `-oud` vs `-ound`) needed by Milestone 10.
 
 ---
 
-### [ ] Milestone 10 — MFA Limitation Evaluation
+### [ ] Milestone 10 — Related-Cluster Colour Mapping
+
+**Goal:** assign visually related colours to phonetically related clusters, so the
+HTML output signals rhyme family relationships at a glance.
+
+Subgoals:
+- After clustering, compute inter-cluster similarity scores (average pairwise
+  similarity between members of different clusters)
+- Clusters scoring above an inter-cluster threshold get hues that are close together
+  on the colour wheel; phonetically distant clusters get maximally different hues
+- Implement a hue-based colour assignment function that takes a similarity graph of
+  clusters and returns a colour per label
+- Test on the sound/underground verse: `-oud` and `-ound` clusters should receive
+  visually related colours
+
+**Why this matters:** the current palette assigns colours arbitrarily. Related rhyme
+families (e.g. `-oud` / `-ound`) are visually indistinguishable from unrelated ones.
+Colour relatedness makes the rhyme structure legible at a glance without reading the
+words.
+
+**Depends on:** Milestone 9 — inter-cluster similarity scores are only meaningful once
+the similarity function understands phoneme classes.
+
+---
+
+### [ ] Milestone 11 — MFA Limitation Evaluation
 
 **Goal:** stress-test the pipeline on real rap audio and identify where MFA fails.
 
@@ -134,7 +150,7 @@ Subgoals:
 
 ---
 
-### [ ] Milestone 11 — Rhyme Complexity Scoring
+### [ ] Milestone 12 — Rhyme Complexity Scoring
 
 **Goal:** produce a numeric score per verse reflecting rhyme density and sophistication.
 
@@ -149,7 +165,7 @@ Subgoals:
 
 ---
 
-### [ ] Milestone 12 — Structural Refactor for Modularity
+### [ ] Milestone 13 — Structural Refactor for Modularity
 
 **Goal:** separate the pipeline into clean modules ready for API wrapping.
 
@@ -169,7 +185,7 @@ Subgoals:
 
 ---
 
-### [ ] Milestone 13 — Phoneme-Stream Pipeline (separate repo)
+### [ ] Milestone 14 — Phoneme-Stream Pipeline (separate repo)
 
 **Goal:** implement the word-boundary-free phoneme-stream architecture as a parallel
 system to the word-based pipeline.
@@ -187,7 +203,7 @@ the word-based system.
 
 ---
 
-## Long-term vision (post-Milestone 13)
+## Long-term vision (post-Milestone 14)
 
 - Web app with song URL input → rhyme scheme visualisation output
 - Custom audio-to-phoneme model (to replace MFA for non-standard pronunciations)

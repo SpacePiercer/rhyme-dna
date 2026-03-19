@@ -163,8 +163,7 @@ failures, not linguistic filtering.
 
 ## similarity_engine.py — key decisions
 
-### `rhyme_similarity()` routes through `longest_common_tail_similarity` for both
-`"stressed"` and `"stressed_plus"` modes
+### `rhyme_similarity()` routes through `longest_common_tail_similarity` for both `"stressed"` and `"stressed_plus"` modes
 
 **Previous behaviour:** `"stressed"` mode used a weighted vowel/coda/length scorer.
 `"stressed_plus"` called `longest_common_tail_similarity`.
@@ -274,7 +273,7 @@ behaviour is preserved unchanged.
 `expected_clusters` in the notebook is fragile: it stores cluster *letters* (A, B, C…)
 which shift whenever the word pool changes (e.g. switching between `"end_only"` and
 `"full_line"` modes). Rather than updating the dict every time the mode changes, the
-evaluation is left as-is for now. This will be replaced in Milestone 12 with a
+evaluation is left as-is for now. This will be replaced in Milestone 13 with a
 **pairwise cluster identity** check: instead of comparing letters, the evaluator asks
 "do these two words share a label?" — which is stable across any pool size or mode.
 
@@ -338,7 +337,7 @@ evaluation is left as-is for now. This will be replaced in Milestone 12 with a
   tail matches (e.g. `N D` in `and` vs `mound`) over-merge at that threshold.
   Recommended pairing: `"full_line"` + `"stressed"` + threshold `0.7`.
 - `expected_clusters` evaluation left as-is; will be replaced with pairwise identity
-  check in Milestone 12.
+  check in Milestone 13.
 
 **Test verses:**
 ```
@@ -356,11 +355,59 @@ It was crazy the shit went way beyond some Jay Z and Nas shit
 
 ---
 
+### Milestone 8 — Intelligent Rhyme Rendering
+
+**What was built:**
+
+- `find_rhyme_suffix_span()` added to `html_generation.py` — a greedy
+  phoneme-to-grapheme aligner that maps the rhyme unit back to a character span
+  within the word string. Returns `(start_char, end_char)` so only the rhyming
+  suffix is wrapped in the colour span, not the whole word.
+- `filter_clusters()` added to `html_generation.py` — a quality gate applied at
+  render time. A cluster passes if its minimum rhyme unit length is >= `min_phonemes`
+  (default 2) AND either >= 2 members span >= 2 different lines, OR >= 3 members
+  total. Singletons are suppressed automatically.
+- `generate_rhyme_html()` updated to call both new helpers. Accepts two new
+  parameters: `min_phonemes` (default 2) and `debug` (default False). Existing
+  call signatures are fully backwards-compatible.
+
+**Key decisions:**
+
+- **Grapheme aligner over TextGrid timecodes** — the phone tier gives start/end
+  times per phoneme, but timecodes do not map to character positions directly. A
+  grapheme aligner working on the surface word string is simpler, equally accurate,
+  and self-contained. Timecodes remain useful for a future audio waveform
+  highlighting feature but are not the right tool here.
+- **Filter at render time, not extraction time** — consistent with the Milestone 7
+  decision not to filter function words at extraction time. All candidates flow
+  through the pipeline; the render layer decides what is worth showing. This keeps
+  the pipeline data complete for scoring and evaluation (Milestone 12).
+- **Safe fallback on alignment failure** — `find_rhyme_suffix_span()` returns
+  `(0, len(word))` (whole-word highlight) on any alignment failure. Never crashes,
+  never silently drops a highlight.
+- **`-oud` / `-ound` correctly split into separate clusters** — `crowd/loud/proud`
+  share `AW1 D`; `found/sound/underground/mound` share `AW1 N D`. These are
+  genuinely distinct rhyme units. The visual separation is correct. Related-cluster
+  colour mapping (Milestone 10) will signal their phonetic kinship visually.
+
+**Test result (sound/underground verse, `"stressed"` mode, `"full_line"` detection,
+threshold 0.7):**
+
+- Passing clusters: `B` (-ound, 5 members), `E` (-oud, 3 members), `H` (-ight, 9 members)
+- Blocked clusters: all singletons and shallow matches (`i`, `the`, `a`, `of`,
+  `was`, `and`, `at`, `in`, `ignites`, `shines`)
+- Suffix highlighting confirmed: e.g. `under`**`ground`**, `a`**`round`**,
+  `m`**`ound`** — prefix unstyled, rhyming suffix coloured
+
+---
+
 ## Open questions / next steps
 
-- Milestone 8: intelligent rendering — highlight rhyme units not whole words,
-  singleton suppression, cluster quality filter based on phoneme depth and
-  positional alignment.
-- Milestone 12: replace letter-based evaluation with pairwise cluster identity check.
+- Milestone 9: slant rhyme detection via phoneme-class similarity. Will also fix
+  the under-scoring of related clusters (e.g. `loud` / `mound` scores 0.5 because
+  the tail walk stops at the inserted nasal `N`).
+- Milestone 10: related-cluster colour mapping — clusters that are phonetically
+  similar receive visually related hues. Depends on Milestone 9's improved scorer.
+- Milestone 13: replace letter-based evaluation with pairwise cluster identity check.
 - Phoneme-stream repo: separate development track.
 - Language support: English only for now.
