@@ -313,7 +313,7 @@ Subgoals:
 
 **Note:** scope and approach to be decided at milestone start once the core pipeline
 (M10–M17) is stable.
-P
+
 ---
 
 ## Long-term vision (post-Milestone 18)

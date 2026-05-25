@@ -1,9 +1,12 @@
 import itertools
 
 def normalize_phoneme(p):
+    """Strip stress markers from an IPA phoneme symbol.
 
-    # remove stress digits from ARPAbet vowels
-    return p.rstrip("012")
+    MFA's english_us_ipa model prefixes stressed vowels with ˈ (primary)
+    or ˌ (secondary). These are stripped so comparisons are stress-agnostic.
+    """
+    return p.lstrip("ˈˌ")
 
 
 # ---------------------------------------------------------------------------
