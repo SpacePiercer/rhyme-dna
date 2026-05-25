@@ -460,12 +460,115 @@ due to `of`/`was` joining cluster D — cosmetic only.
 
 ## Open questions / next steps
 
-- Milestone 10: related-cluster colour mapping — clusters that are phonetically
-  similar receive visually related hues. Depends on Milestone 9's scorer.
-- Milestone 11: insertion-tolerant tail scoring — skip inserted consonants
-  (e.g. the N in `-ound` vs `-oud`) to detect cross-cluster slant rhymes like
-  `proud`/`mound`. The loud/mound under-scoring noted in M8 was NOT fixed in M9
-  and is deferred here.
-- Milestone 13: replace letter-based evaluation with pairwise cluster identity check.
+- Milestone 10: switch MFA to IPA — prerequisite for panphon integration.
+- Milestone 11: replace hand-coded similarity table with panphon feature vectors.
+- Milestone 12: phoneme-class letter colouring (DNA view) — default output mode.
+- Milestone 13: rgba alpha-encoded colour intensity for rhyme cluster view.
+- Milestone 14: global phoneme-stream rhyme detection — replaces tail-walk entirely.
+- Milestone 16: complexity scoring tied to OUTPUT_MODE = "rhyme" cluster output.
+- Milestone 17: replace letter-based evaluation with pairwise cluster identity check.
 - Phoneme-stream repo: separate development track.
 - Language support: English only for now.
+
+---
+
+## Architectural decision: move to IPA + panphon (agreed before Milestone 10)
+
+### What changes and why
+
+Three parts of the pipeline were hand-coded decisions that are being replaced by
+phonologically grounded alternatives:
+
+| Current (manual) | Proposed (grounded) |
+|---|---|
+| ARPAbet phonemes via `english_us_arpa` | IPA phonemes via `english_us_ipa` |
+| Hand-coded `PHONEME_CLASSES` table | panphon articulatory feature vectors |
+| Magic constants `0.7`, `0.4` | Feature overlap ratio — computed, not guessed |
+
+### Why IPA instead of ARPAbet
+
+panphon, the standard Python library for phonological feature vectors, operates on
+IPA symbols. ARPAbet is not supported. The switch is a prerequisite, not a goal in
+itself.
+
+### Why panphon instead of the class table
+
+The hand-coded two-tier table (`SAME_CLASS_SCORE = 0.7`, `SAME_SUPERCLASS_SCORE = 0.4`)
+is a manual approximation of articulatory similarity. It requires maintenance when new
+phoneme types are encountered and the tier boundaries are arbitrary.
+
+panphon represents each phoneme as a fixed-length binary feature vector (voicing,
+place of articulation, manner, etc.). Similarity between two phonemes is computed as
+the ratio of shared features — a continuous 0.0–1.0 value derived from phonological
+fact, not from a lookup table.
+
+### How the new similarity chain works
+
+```
+IPA symbol
+    ↓
+panphon feature vector  (e.g. /d/ → [+voice, +alveolar, +stop, ...])
+    ↓
+phoneme_similarity(p1, p2)  →  feature overlap ratio  (0.0–1.0)
+    ↓
+longest_common_tail_similarity()  →  sequence score  (0.0–1.0)
+    ↓
+cluster_rhymes()  →  cluster labels
+```
+
+The tail-walking loop in `longest_common_tail_similarity()` is unchanged — it still
+walks from the right end of both sequences and stops on a low-scoring pair. Only
+what it calls changes: `phoneme_similarity()` now returns a panphon-derived ratio
+instead of a class-table lookup.
+
+### Threshold
+
+The clustering threshold (currently `0.7`) still controls cluster membership. The
+correct long-term approach is to derive the threshold empirically from the verse's
+own pairwise score distribution (find the natural valley between rhyme-pair scores
+and non-rhyme-pair scores — analogous to Otsu's method in image thresholding).
+This is deferred until the panphon scorer is stable; the threshold is kept as a
+manually set constant for now.
+
+### DNA view — Milestone 12 design decisions
+
+- **Phoneme classes:** panphon's built-in feature categories are used directly as
+  the colour classes. Classes are linguistically defined and stable across songs —
+  no clustering step, no per-verse variation.
+- **Silent letters:** letters with no corresponding phoneme (e.g. the `e` in *phone*)
+  receive no colour (transparent/unstyled). They are visually neutral.
+- **Digraphs:** both letters of a multi-letter grapheme (e.g. `sh`, `th`) share the
+  colour of the single phoneme they represent.
+- **Output mode switch:** `OUTPUT_MODE = "dna"` (default) / `"rhyme"` (cluster view).
+
+### Rhyme cluster view — Milestone 13 design decisions
+
+Rather than treating cluster membership as binary (in / out), each word's highlight
+will use `rgba(r, g, b, alpha)` where alpha encodes the word's average pairwise
+similarity to other members of its cluster. Perfect rhymes render at full opacity;
+slant rhymes at partial opacity. This reflects the continuous nature of rhyme without
+requiring a second threshold.
+
+Hue assignment will also be similarity-driven: phonetically related clusters (e.g.
+`-oud` / `-ound`) receive hues that are close together on the colour wheel.
+
+### Tail-walk retirement — Milestone 14
+
+`longest_common_tail_similarity()`, `extract_rhyme_unit()`, and
+`extract_rhyme_candidates()` are to be retired in Milestone 14 in favour of a
+boundary-free, stream-based pattern detector.
+
+**Why:** the tail-walk is anchored at word endings and compares fixed-length phoneme
+sequences position by position. It cannot handle insertions (the `-oud` / `-ound`
+problem), cannot detect multi-word rhyme schemes (e.g. *"document shredder"* /
+*"you meant shredder"*), and each attempted fix adds a new magic constant and a new
+failure mode. The approach is too rigid to expand upon without accumulating patches.
+
+**What replaces it:** a phoneme-stream detector that treats the full lyric piece as
+one continuous IPA sequence, finds similar subsequences at any position, and maps
+them back to grapheme positions. The exact algorithm (sliding window, local sequence
+alignment, or similar) is to be decided at the start of Milestone 14.
+
+The phoneme-stream pipeline that was originally planned as a separate repo (old M18)
+is subsumed by this approach — it is now the core detection method, not a parallel
+experiment.
