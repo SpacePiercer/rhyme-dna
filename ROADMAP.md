@@ -105,54 +105,146 @@ reflect actual rhyme sophistication.
 
 ## Upcoming
 
-### [ ] Milestone 10 — Related-Cluster Colour Mapping
+### [ ] Milestone 10 — Switch MFA to IPA
 
-**Goal:** assign visually related colours to phonetically related clusters, so the
-HTML output signals rhyme family relationships at a glance.
+**Goal:** re-run MFA alignment using `english_us_ipa` instead of `english_us_arpa`,
+so all downstream phoneme representations are IPA rather than ARPAbet.
 
 Subgoals:
-- After clustering, compute inter-cluster similarity scores (average pairwise
-  similarity between members of different clusters)
-- Clusters scoring above an inter-cluster threshold get hues that are close together
-  on the colour wheel; phonetically distant clusters get maximally different hues
-- Implement a hue-based colour assignment function that takes a similarity graph of
-  clusters and returns a colour per label
-- Test on the sound/underground verse: `-oud` and `-ound` clusters should receive
-  visually related colours
+- Re-run alignment using the `english_us_ipa` acoustic model on existing audio
+- Verify the TextGrid phones tier now contains IPA symbols
+- Update the `word_to_phonemes` builder in notebook Section 3 to handle IPA output
+- Rewrite `normalize_phoneme()` — stress-digit stripping no longer applies; IPA uses
+  a prefix stress mark (`ˈ`) which needs different handling
+- Regression test: same verse, same cluster results expected (or document any drift)
 
-**Why this matters:** the current palette assigns colours arbitrarily. Related rhyme
-families (e.g. `-oud` / `-ound`) are visually indistinguishable from unrelated ones.
-Colour relatedness makes the rhyme structure legible at a glance without reading the
-words.
+**Why this matters:** panphon (Milestone 11) operates on IPA. ARPAbet is not supported.
+All downstream improvements to the similarity engine require this switch first.
 
-**Depends on:** Milestone 9 — inter-cluster similarity scores are only meaningful once
-the similarity function understands phoneme classes.
+**Depends on:** Milestone 9 (complete).
 
 ---
 
-### [ ] Milestone 11 — Insertion-Tolerant Tail Scoring
+### [ ] Milestone 11 — Replace Similarity Engine with panphon
 
-**Goal:** upgrade `longest_common_tail_similarity()` to skip inserted consonants
-when walking tails, so that clusters like `-oud` and `-ound` can be detected as
-cross-cluster slant rhymes.
+**Goal:** replace the hand-coded `PHONEME_CLASSES` table and score constants with
+phonological feature vectors from the `panphon` library, so phoneme similarity is
+grounded in articulatory features rather than manual decisions.
 
 Subgoals:
-- Design an insertion-skip mechanism: when the tail walk hits a mismatch, check
-  whether skipping one phoneme on either side recovers a match
-- Score the insertion penalty (skipped phoneme should reduce the total score)
-- Verify that `proud`/`mound` scores above 0.7 with insertion tolerance enabled
-- Verify that unrelated clusters are not over-merged
-- Calibrate penalty weight so the feature is togglable without breaking M9 results
+- Install `panphon`; build an `ipa_to_features()` lookup returning a feature vector
+  for any IPA symbol
+- Remove `PHONEME_CLASSES`, `_SUPERCLASS`, `SAME_CLASS_SCORE`, `SAME_SUPERCLASS_SCORE`
+  entirely from `similarity_engine.py`
+- Implement `phoneme_similarity(p1, p2)` returning a feature-overlap ratio (0.0–1.0)
+  computed from the two symbols' panphon vectors — no hand-coded tiers
+- Update `longest_common_tail_similarity()` to call the new scorer
+- Run spot-checks against the M9 score table to verify directional correctness
 
-**Why this matters:** `-oud` / `-ound` are the canonical example of a real rhyme
-relationship that the current tail walk misses because the inserted nasal `N` halts
-the walk before `AW` can match `AW`. Noted as unresolved in M8 and M9.
+**Why this matters:** the current two-tier table (0.7 / 0.4) is a manual approximation
+of phonological distance. Feature overlap ratio replaces magic constants with a
+principled continuous measure that generalises to any IPA symbol without table
+maintenance.
 
-**Depends on:** Milestone 9.
+**Depends on:** Milestone 10.
 
 ---
 
-### [ ] Milestone 12 — MFA Limitation Evaluation
+### [ ] Milestone 12 — Phoneme-Class Letter Colouring (DNA View)
+
+**Goal:** add a new output mode — the default — where every letter in the lyrics is
+coloured by the phoneme class of the sound it represents, using panphon's built-in
+feature categories. The result is a full phonological texture of the piece; rhyme
+patterns become visible as repeated colour patterns rather than being explicitly
+detected.
+
+Subgoals:
+- Extend the grapheme-phoneme aligner (`find_rhyme_suffix_span()` covers only the
+  rhyme suffix; extend it to cover the full word) so every letter can be mapped to
+  its corresponding phoneme
+- Map each IPA phoneme to its panphon built-in feature category (classes are
+  linguistically defined and stable across songs — not derived from clustering)
+- Assign a distinct colour to each category
+- Generate HTML where every letter `<span>` carries the colour of its phoneme's
+  category; letters with no corresponding phoneme (silent letters, e.g. the `e`
+  in *phone*) receive no colour (transparent/unstyled)
+- Digraphs (`sh`, `th`, etc.) — both letters share the colour of the single phoneme
+  they represent
+- Add an `OUTPUT_MODE` config variable: `"dna"` (this view, default) and `"rhyme"`
+  (existing cluster view)
+
+**Why this matters:** this is the "Verse DNA" concept made literal — a phonological
+fingerprint of the lyrics at the individual-sound level. It requires no threshold
+decisions and no rhyme-unit extraction; phonological relationships emerge visually.
+
+**Depends on:** Milestone 11 (panphon in place, IPA symbols available).
+
+---
+
+### [ ] Milestone 13 — Similarity-Driven Colour Intensity
+
+**Goal:** make the HTML output encode not just *which* cluster a word belongs to, but
+*how strongly* it belongs there — using `rgba` alpha to visualise similarity score.
+
+Subgoals:
+- After clustering, compute each word's average pairwise similarity to other members
+  of its cluster (its "membership strength")
+- Pass membership strength into `generate_rhyme_html()` and use it as the alpha
+  channel: `rgba(r, g, b, strength)` — perfect rhymes render at full opacity, slant
+  rhymes at partial opacity
+- Assign hues so that phonetically related clusters (e.g. `-oud` / `-ound`) receive
+  visually close colours on the colour wheel; unrelated clusters get maximally
+  different hues
+- Compute inter-cluster similarity (average pairwise score across cluster members)
+  to drive the hue proximity assignment
+- Test on the sound/underground verse: `-oud` and `-ound` clusters should be visually
+  related; a word that barely cleared the threshold should visibly fade
+
+**Why this matters:** a hard colour boundary (in / out) hides the continuous nature of
+rhyme. Alpha-encoded strength lets the reader perceive rhyme confidence at a glance —
+which is closer to how a listener actually hears near-rhymes.
+
+**Note on threshold:** the clustering threshold still controls cluster membership.
+Threshold calibration from data (Otsu's method over the verse's own pairwise score
+distribution) is a known improvement but is deferred — it will be addressed once the
+full panphon scorer is stable.
+
+**Depends on:** Milestone 11.
+
+---
+
+### [ ] Milestone 14 — Global Phoneme-Stream Rhyme Detection
+
+**Goal:** replace the word-ending tail-walk with a boundary-free, stream-based
+pattern detector that finds repeated or similar phoneme subsequences anywhere in
+the piece — across word and line boundaries — and maps them back to character
+positions for visualisation.
+
+**Why the tail-walk is being retired:** `longest_common_tail_similarity()` is
+anchored at word endings and compares fixed-length tails position by position.
+This makes it brittle to insertions (the `-oud` / `-ound` problem), unable to
+detect multi-word rhyme schemes (e.g. *"document shredder"* / *"you meant shredder"*),
+and increasingly hard to patch without accumulating special cases. Each fix
+(insertion skipping, penalty weights, skip limits) adds a new magic constant and
+a new failure mode.
+
+Subgoals:
+- Treat the entire lyric piece as one continuous IPA phoneme sequence, ignoring
+  word and line boundaries during pattern search
+- Design a pattern-matching approach that can find similar phoneme subsequences
+  at any position in the stream (candidate approaches: sliding window with
+  panphon similarity, local sequence alignment — exact method TBD at milestone start)
+- Map detected pattern instances back to grapheme positions for HTML highlighting
+- Verify detection of end rhymes, internal rhymes, and multi-word rhyme schemes
+  on the test verses from M7–M9
+- Retire `longest_common_tail_similarity()`, `extract_rhyme_unit()`, and
+  `extract_rhyme_candidates()` once the new detector covers their use cases
+
+**Depends on:** Milestone 11 (panphon similarity as the core comparison function).
+
+---
+
+### [ ] Milestone 15 — MFA Limitation Evaluation
 
 **Goal:** stress-test the pipeline on real rap audio and identify where MFA fails.
 
@@ -168,9 +260,10 @@ Subgoals:
 
 ---
 
-### [ ] Milestone 13 — Rhyme Complexity Scoring
+### [ ] Milestone 16 — Rhyme Complexity Scoring
 
 **Goal:** produce a numeric score per verse reflecting rhyme density and sophistication.
+Operates on `OUTPUT_MODE = "rhyme"` cluster output only.
 
 Subgoals:
 - Define scoring components:
@@ -181,9 +274,11 @@ Subgoals:
 - Produce a per-verse score and a per-line breakdown
 - Visualise as an annotated HTML page (extend `generate_rhyme_html()`)
 
+**Depends on:** Milestone 13 (rhyme cluster output with rgba intensity).
+
 ---
 
-### [ ] Milestone 14 — Structural Refactor for Modularity
+### [ ] Milestone 17 — Structural Refactor for Modularity
 
 **Goal:** separate the pipeline into clean modules ready for API wrapping.
 
@@ -203,25 +298,25 @@ Subgoals:
 
 ---
 
-### [ ] Milestone 15 — Phoneme-Stream Pipeline (separate repo)
+### [ ] Milestone 18 — Web App MVP
 
-**Goal:** implement the word-boundary-free phoneme-stream architecture as a parallel
-system to the word-based pipeline.
+**Goal:** wrap the pipeline in a minimal web interface — song input, rhyme scheme
+visualisation output — as the first step toward the Genius-like long-term vision.
 
 Subgoals:
-- Take raw phoneme sequence from TextGrid (phones tier only, no word boundaries)
-- Sliding window over phoneme stream to find repeated patterns
-- Map detected patterns back to word positions for visualisation
-- Compare output against word-based pipeline on the same verse
-- Document where phoneme-stream detects rhymes that word-based misses
+- Define the input surface: lyrics text upload + pre-aligned TextGrid upload
+  (full audio-to-alignment pipeline integration is a later step)
+- Serve the DNA view and the rhyme cluster view as toggleable HTML output
+- No user accounts, no database — static analysis, results shown in browser
+- Identify the engineering gaps between the current notebook pipeline and a
+  deployable service
 
-**Why separate:** this is a fundamentally different architecture. It should be
-developed and evaluated independently, then potentially merged or run alongside
-the word-based system.
-
+**Note:** scope and approach to be decided at milestone start once the core pipeline
+(M10–M17) is stable.
+P
 ---
 
-## Long-term vision (post-Milestone 15)
+## Long-term vision (post-Milestone 18)
 
 - Web app with song URL input → rhyme scheme visualisation output
 - Custom audio-to-phoneme model (to replace MFA for non-standard pronunciations)

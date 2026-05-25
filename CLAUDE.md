@@ -98,6 +98,85 @@ Also mark the completed milestone as `[x]` in `ROADMAP.md`.
 
 ---
 
+## Git workflow
+
+### Branches and PR titles
+
+Use the format `class(number)-short-description` for branches and
+`class(number): Short description` for PR titles. This follows the
+[Conventional Commits](https://www.conventionalcommits.org/) convention.
+
+| Class | Use for | Numbered by |
+|---|---|---|
+| `milestone` | implementing a milestone from ROADMAP.md | milestone number |
+| `docs` | changes to planning or documentation files only (no code) | sequential from 1 |
+| `fix` | bug fix | sequential from 1 |
+| `refactor` | restructuring existing code without changing behaviour | sequential from 1 |
+| `chore` | maintenance — config, tooling, dependencies | sequential from 1 |
+
+**Examples:**
+```
+Branch:   m10-ipa-switch
+PR title: milestone(10): IPA Switch
+
+Branch:   d1-roadmap-restructure
+PR title: docs(1): Roadmap Restructure and Workflow
+
+Branch:   f1-oud-ound-clustering
+PR title: fix(1): Correct -oud / -ound cluster separation
+```
+
+Create the branch at the start of the work session, before writing any code or
+making any changes. Merge to `main` only when the work is complete and tested.
+
+### Commits
+
+Commit **frequently** — after every self-contained change (a new function, a bug fix,
+a passing test). A commit should be reviewable in under two minutes. If the diff is
+large enough that you need to scroll to understand it, it should have been two commits.
+
+Remind the user to commit if a chat session has produced significant code changes
+and no commit has been made yet.
+
+### GitHub CLI
+
+Always use the `gh` CLI for all GitHub interactions — creating PRs, viewing PRs,
+checking CI status, merging, listing issues, etc. Never use the GitHub web UI
+instructions or raw `git push` + manual PR creation. The repo is
+`SpacePiercer/verse-dna`.
+
+### Pull requests
+
+One PR per milestone. Keep milestones short enough that the PR diff is readable in
+a single sitting. If a milestone grows large during planning, propose splitting it
+into two before implementation begins.
+
+**PR title format:**
+```
+Milestone N: Short description matching the milestone heading
+```
+
+**PR description template:**
+```
+## Motivations
+Why this change was needed — the problem or gap it addresses.
+
+## Changes
+What was built or modified. Bullet list of files/functions changed.
+
+## Testing
+How the change was verified — test verses used, accuracy results, spot-checks.
+
+## Considerations
+Trade-offs made, known limitations, deferred items, and anything a reviewer
+should keep in mind when reading the diff.
+```
+
+When asked to create a PR, populate this template using the milestone description
+from `ROADMAP.md` and the decisions recorded in `DECISIONS.md` for that milestone.
+
+---
+
 ## What not to do
 
 - Do not hallucinate progress — if something is not in `DECISIONS.md`, it has not been built
