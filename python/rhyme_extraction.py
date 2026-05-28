@@ -1,3 +1,25 @@
+from python.similarity_engine import normalize_phoneme
+
+# IPA vowel characters found in english_mfa output.
+# Used to locate the stressed vowel in extract_rhyme_unit().
+_IPA_VOWELS = {
+    'a', 'e', 'i', 'o', 'u',   # ASCII base vowels (covers diphthongs aj, aw, oj)
+    'ɑ', 'ɒ', 'ɐ',              # open back / near-open central
+    'æ',                        # near-open front
+    'ɛ', 'ɜ',                   # open-mid front / central
+    'ɪ',                        # near-close near-front
+    'ɔ',                        # open-mid back
+    'ʊ',                        # near-close near-back
+    'ʌ',                        # open-mid back unrounded
+    'ə',                        # schwa
+}
+
+
+def _is_ipa_vowel(phoneme):
+    """Return True if any character in this IPA phoneme is a vowel."""
+    return any(c in _IPA_VOWELS for c in normalize_phoneme(phoneme))
+
+
 def extract_rhyme_unit(phonemes, mode="stressed", debug=False):
     """
     Extract the rhyme unit from a phoneme sequence.
@@ -5,7 +27,7 @@ def extract_rhyme_unit(phonemes, mode="stressed", debug=False):
     Parameters
     ----------
     phonemes : list of str
-        ARPAbet phoneme sequence for a word.
+        IPA phoneme sequence for a word (from english_mfa MFA alignment).
     mode : str
         One of "stressed", "stressed_plus", or "entire_word".
     debug : bool
@@ -17,18 +39,14 @@ def extract_rhyme_unit(phonemes, mode="stressed", debug=False):
         The rhyme unit phoneme sequence.
     """
 
+    # Find the rightmost vowel phoneme — IPA carries no stress-digit markers,
+    # so the rightmost vowel is used as the start of the rhyme unit.
     stressed_index = None
 
     for i in range(len(phonemes) - 1, -1, -1):
-        if '1' in phonemes[i]:
+        if _is_ipa_vowel(phonemes[i]):
             stressed_index = i
             break
-
-    if stressed_index is None:
-        for i in range(len(phonemes) - 1, -1, -1):
-            if '2' in phonemes[i] or '0' in phonemes[i]:
-                stressed_index = i
-                break
 
     if stressed_index is None:
         stressed_index = 0
@@ -41,7 +59,7 @@ def extract_rhyme_unit(phonemes, mode="stressed", debug=False):
         start_index = 0
 
         while pre_index >= 0:
-            if any(c.isdigit() for c in phonemes[pre_index]):
+            if _is_ipa_vowel(phonemes[pre_index]):
                 start_index = pre_index
                 break
             pre_index -= 1

@@ -1,6 +1,13 @@
 # Knowledge base (basic-memory notes, not tracked in git)
 kb/
 
+# Claude Code local config
+.claude/
+
+# Debug scratch files
+_debug_*.py
+_debug_*.txt
+
 # Instruction/documentation files
 #textfiles/
 
