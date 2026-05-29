@@ -11,7 +11,9 @@ The current milestone to work on is always the first one marked `[ ]` in `ROADMA
 1. Read this file (`CLAUDE.md`)
 2. Read `DECISIONS.md` — understand what has been built and why
 3. Read `ROADMAP.md` — identify the next incomplete milestone
-4. Confirm you are ready with a brief recap: current state of the project, and the
+4. Search the basic-memory KB (`verse-dna` project) for notes relevant to the
+   upcoming milestone — use `mcp__basic-memory__search` with the milestone topic
+5. Confirm you are ready with a brief recap: current state of the project, and the
    milestone you are about to begin
 
 ---
