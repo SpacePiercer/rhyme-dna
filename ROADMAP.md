@@ -101,29 +101,30 @@ The next chat always picks up the first `[ ]` milestone.
 them as non-rhymes produces false negatives. This is where the system starts to
 reflect actual rhyme sophistication.
 
+### [x] Milestone 10 — Switch MFA to IPA
+
+**What was done:**
+- MFA alignment switched from `english_us_arpa` to the `english_mfa` IPA model
+- TextGrid `phones` tier now carries IPA symbols (`aw`, `aj`, `ɹ`, `ð`, …)
+- `OUTPUT_TEXTGRID_PATH` renamed to `input.TextGrid` (MFA naming convention)
+- `normalize_phoneme()` rewritten to strip IPA stress markers (`ˈ`, `ˌ`) instead
+  of ARPAbet digits
+- `extract_rhyme_unit()` rewritten — uses the rightmost IPA vowel as stress anchor
+  (IPA has no per-vowel stress digits); `_IPA_VOWELS` set + `_is_ipa_vowel()` helper
+  added to `rhyme_extraction.py`
+- `.gitignore` extended (`.claude/`, `_debug_*`, `kb/`); notebook headless command
+  in `CLAUDE.md` updated with `--kernel_name`
+- Notebook re-executed end-to-end; HTML regenerated
+
+**Known limitation (deferred to M11):** `PHONEME_CLASSES` is still ARPAbet-keyed
+and not consulted on IPA input — slant scoring collapses to identity-only
+(1.0 / 0.0). The `-ound` / `-oud` / `-ight` clusters survive because their tails
+match exactly. M11 deletes the class table outright, so patching it would be
+throwaway work.
+
 ---
 
 ## Upcoming
-
-### [ ] Milestone 10 — Switch MFA to IPA
-
-**Goal:** re-run MFA alignment using `english_us_ipa` instead of `english_us_arpa`,
-so all downstream phoneme representations are IPA rather than ARPAbet.
-
-Subgoals:
-- Re-run alignment using the `english_us_ipa` acoustic model on existing audio
-- Verify the TextGrid phones tier now contains IPA symbols
-- Update the `word_to_phonemes` builder in notebook Section 3 to handle IPA output
-- Rewrite `normalize_phoneme()` — stress-digit stripping no longer applies; IPA uses
-  a prefix stress mark (`ˈ`) which needs different handling
-- Regression test: same verse, same cluster results expected (or document any drift)
-
-**Why this matters:** panphon (Milestone 11) operates on IPA. ARPAbet is not supported.
-All downstream improvements to the similarity engine require this switch first.
-
-**Depends on:** Milestone 9 (complete).
-
----
 
 ### [ ] Milestone 11 — Replace Similarity Engine with panphon
 

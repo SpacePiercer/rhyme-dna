@@ -456,6 +456,65 @@ due to `of`/`was` joining cluster D — cosmetic only.
 - **`debug=False` parameter added to `longest_common_tail_similarity()`** —
   prints per-position pair scores when enabled. Follows project convention.
 
+### Milestone 10 — Switch MFA to IPA
+
+**What was built:**
+
+- MFA alignment switched from the `english_us_arpa` acoustic model to the
+  `english_mfa` model. The TextGrid `phones` tier now carries IPA symbols
+  (`aw`, `aj`, `ɹ`, `ð`, `a`, `t`, `d`, …) instead of ARPAbet (`AW1`, `AY1`,
+  `R`, `DH`, …).
+- `OUTPUT_TEXTGRID_PATH` changed to `input.TextGrid` to match MFA's naming
+  convention (MFA names the output after the input wav stem).
+- `normalize_phoneme()` rewritten — strips IPA stress markers (`ˈ` primary,
+  `ˌ` secondary) instead of ARPAbet stress digits (`0`, `1`, `2`).
+- `extract_rhyme_unit()` rewritten — IPA carries no per-vowel stress digits,
+  so the function now walks the phoneme list right-to-left and uses the
+  rightmost IPA vowel as the stress anchor.
+- `_IPA_VOWELS` set added to `rhyme_extraction.py` — a hand-curated set of
+  the IPA vowel symbols that actually appear in `english_mfa` output (ASCII
+  base vowels plus `ɑ`, `ɒ`, `ɐ`, `æ`, `ɛ`, `ɜ`, `ɪ`, `ɔ`, `ʊ`, `ʌ`, `ə`).
+  `_is_ipa_vowel()` checks membership.
+- Notebook re-executed end-to-end with the IPA alignment; HTML output
+  regenerated.
+- `.gitignore` extended to exclude `.claude/`, `_debug_*` files, and `kb/`
+  (basic-memory notes).
+- `CLAUDE.md` notebook command updated with explicit `--kernel_name` flag.
+
+**Key decisions:**
+
+- **`english_mfa` chosen over `english_us_ipa`** — `english_mfa` is the
+  current MFA-distributed English IPA model; `english_us_ipa` (the name
+  used in earlier ROADMAP wording) refers to the same family of models
+  under an older naming. Both emit IPA. The currently downloadable model
+  is `english_mfa`, so that is what the pipeline uses.
+- **Rightmost IPA vowel as stress anchor** — IPA represents stress as a
+  prefix mark on the syllable (`ˈ`), not as a per-vowel digit suffix.
+  Reliably attaching `ˈ` to the correct phoneme inside a multi-phoneme
+  syllable is not straightforward at this layer. The rightmost vowel is
+  a robust proxy for the rhyme anchor: end-rhymes hinge on the final
+  stressed syllable, and that syllable's vowel is almost always the
+  rightmost vowel in the word.
+- **Hand-curated `_IPA_VOWELS` set** — restricted to symbols observed in
+  `english_mfa` output rather than the entire IPA vowel chart. Keeps the
+  vowel test deterministic and avoids false positives from rare or
+  unrelated IPA codepoints.
+
+**Known limitation deferred to Milestone 11:**
+
+- `PHONEME_CLASSES`, `_SUPERCLASS`, `SAME_CLASS_SCORE`, `SAME_SUPERCLASS_SCORE`
+  in `similarity_engine.py` are still **ARPAbet-keyed** (`"AW"`, `"T"`,
+  `"D"`, …). With IPA inputs the class lookups all return `None`, so
+  `phoneme_similarity()` collapses to identity-only: exact match → 1.0,
+  everything else → 0.0. The M9 slant-rhyme partial credit (T/D = 0.7,
+  IY/EY = 0.4) is effectively disabled.
+- Identity-based clustering still works on the test verse (`-ound`,
+  `-oud`, `-ight` still cluster correctly because their tails match
+  exactly), so the regression is graceful rather than catastrophic.
+- The class table is **not** being migrated to IPA keys because
+  Milestone 11 deletes it outright in favour of panphon
+  feature-overlap ratios. Patching it now would be throwaway work.
+
 ---
 
 ## Open questions / next steps
