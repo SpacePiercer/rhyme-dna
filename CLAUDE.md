@@ -88,6 +88,19 @@ Also mark the completed milestone as `[x]` in `ROADMAP.md`.
 
 ---
 
+## Running the notebook
+
+Whenever it is time to execute the notebook, run it headlessly using:
+
+```
+conda run -n mfa_env jupyter nbconvert --to notebook --execute rhyme-DNA.ipynb --output rhyme-DNA.ipynb --ExecutePreprocessor.timeout=120
+```
+
+This runs all cells in order using the `mfa_env` kernel, writes output back into
+the notebook file, and allows Claude to read the results directly.
+
+---
+
 ## Code style preferences
 
 - Python only for the core pipeline
