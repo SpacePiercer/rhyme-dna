@@ -88,6 +88,25 @@ becomes the context for the next chat.
 
 Also mark the completed milestone as `[x]` in `ROADMAP.md`.
 
+### Rule 6 — Tests with every change
+
+Every change must ship with the unit and/or integration tests that cover it. New
+functions get unit tests; changes that span multiple pipeline stages get integration
+tests. Do not consider a change complete until its tests exist and pass. Tests live
+alongside the core code (e.g. `python/tests/`) and run with `pytest` in `mfa_env`.
+
+**Why this exists:** the pipeline has many interacting stages (alignment, phoneme
+extraction, rhyme detection). Tests are the only way to know a change did not silently
+break an upstream or downstream stage.
+
+### Rule 7 — Pipeline stays runnable with valid results
+
+Every change must leave the pipeline runnable end-to-end and producing valid results.
+Before considering any change complete, run the notebook (see "Running the notebook")
+and confirm it executes without errors and the outputs are sensible. Never leave the
+pipeline in a broken or half-migrated state between changes — if a change is large,
+split it so each committed step is independently runnable.
+
 ---
 
 ## Running the notebook
@@ -143,6 +162,22 @@ PR title: fix(1): Correct -oud / -ound cluster separation
 
 Create the branch at the start of the work session, before writing any code or
 making any changes. Merge to `main` only when the work is complete and tested.
+
+### Mid-milestone rule and documentation updates
+
+When the rules (`CLAUDE.md`) or other planning/documentation files need updating in
+the middle of an ongoing milestone, **do not commit the update onto the milestone
+branch**. Instead:
+
+1. Create a separate `docs(N)` branch off `main` for the rule/doc change.
+2. Commit the change there and merge it into `main` **first**.
+3. Rebase the in-progress milestone branch onto the updated `main` so it picks up the
+   new rules.
+4. Resume milestone work on the rebased branch.
+
+**Why this exists:** rule and documentation changes are independent of milestone code
+and should land cleanly on `main` without being entangled in unfinished milestone work.
+Rebasing the milestone branch afterwards keeps it building on the latest rules.
 
 ### Commits
 
