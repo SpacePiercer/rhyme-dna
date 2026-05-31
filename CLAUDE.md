@@ -11,9 +11,10 @@ The current milestone to work on is always the first one marked `[ ]` in `ROADMA
 1. Read this file (`CLAUDE.md`)
 2. Read `DECISIONS.md` — understand what has been built and why
 3. Read `ROADMAP.md` — identify the next incomplete milestone
-4. Search the basic-memory KB (`verse-dna` project) for notes relevant to the
+4. Read `GLOSSARY.md` — domain-term dictionary and the decision backlog
+5. Search the basic-memory KB (`verse-dna` project) for notes relevant to the
    upcoming milestone — use `mcp__basic-memory__search` with the milestone topic
-5. Confirm you are ready with a brief recap: current state of the project, and the
+6. Confirm you are ready with a brief recap: current state of the project, and the
    milestone you are about to begin
 
 ---
@@ -112,6 +113,72 @@ and confirm it executes without errors and the outputs are sensible. Never leave
 pipeline in a broken or half-migrated state between changes — if a change is large,
 split it so each committed step is independently runnable.
 
+### Rule 8 — Plain language and term explanations
+
+I am not a linguist and not a domain expert. Write for a general audience:
+
+- Use simple, everyday language by default; prefer the plain word over the technical one.
+- The **first time** any domain-specific term appears in a response (linguistics,
+  phonetics, audio processing, advanced ML/maths, etc.), explain it in one short
+  accessible phrase — ideally with a concrete everyday example.
+  e.g. "*phoneme* (the smallest unit of sound in speech — the `t` in *cat*)".
+- If a concept only makes sense through an analogy, give the analogy before the
+  precise definition.
+- Never assume I know jargon, abbreviations, or symbols (IPA characters, feature
+  names, etc.) — spell them out the first time they come up.
+
+**Why this exists:** I am driving the linguistic direction of this project without a
+linguistics background. Clear, jargon-free explanations are how I verify the work is
+correct and stay in control of the decisions.
+
+### Rule 9 — Illustrate every decision with a concrete before/after example
+
+For **every** design decision or correction you make, show a simple worked example of
+how it changes the output or an intermediate result. Use real data from the project
+(a word, a rhyme, a score) wherever possible.
+
+Format the example as a small before → after comparison, e.g.:
+
+```
+Decision: average diphthong segments instead of comparing them separately
+- Word "loud" vs "mound"
+- Before: similarity = 0.50
+- After:  similarity = 0.62  (the shared "ow" sound now contributes partial credit)
+```
+
+If a decision changes nothing visible yet (e.g. internal refactor), say so explicitly
+and explain what result it *would* affect later.
+
+**Why this exists:** seeing the effect on a real word or score is how I judge whether a
+decision is correct, without needing to read the implementation.
+
+### Rule 10 — Maintain the glossary and decision backlog
+
+The project keeps a `GLOSSARY.md` with two parts: (A) a plain-language dictionary of
+every domain-specific term, and (B) a dated backlog of measurement/linguistic decisions.
+
+- **When you use a domain term** that is not yet in Part A, add it there with a plain
+  explanation (this is how Rule 8 is recorded permanently).
+- **When you make a measurement or linguistic decision** (a new score, a threshold, a
+  rule for handling sounds), add a row to Part B with the date, the current branch, the
+  area, the decision, and its effect on the output.
+
+**How glossary updates are committed (branching):**
+
+- Glossary/backlog updates are **never** committed on the milestone branch, and **never**
+  on a mid-workflow `docs` branch.
+- Instead, collect them and commit them on a dedicated **glossary** branch (class `g`,
+  e.g. `g1-m11-panphon-terms`, PR title `glossary(1): ...`), created and merged **only
+  after** the related milestone's technical changes have been implemented and merged.
+- This keeps milestone PRs purely technical and records the terms/decisions once the
+  work they describe is actually on `main`.
+- *One-time exception:* the initial creation of `GLOSSARY.md` itself rides with the
+  `docs` change that introduces this rule.
+
+**Why this exists:** it gives me a single, jargon-free reference and an auditable record
+of every decision that shaped how rhymes are scored — added once the work is merged, not
+mixed into the technical milestone PR.
+
 ---
 
 ## Running the notebook
@@ -149,6 +216,7 @@ Use the format `class(number)-short-description` for branches and
 |---|---|---|
 | `milestone` | implementing a milestone from ROADMAP.md | milestone number |
 | `docs` | changes to planning or documentation files only (no code) | sequential from 1 |
+| `glossary` | updates to `GLOSSARY.md` (terms + decision backlog); merged *after* the related milestone (see Rule 10) | sequential from 1 |
 | `fix` | bug fix | sequential from 1 |
 | `refactor` | restructuring existing code without changing behaviour | sequential from 1 |
 | `chore` | maintenance — config, tooling, dependencies | sequential from 1 |
@@ -163,6 +231,9 @@ PR title: docs(1): Roadmap Restructure and Workflow
 
 Branch:   f1-oud-ound-clustering
 PR title: fix(1): Correct -oud / -ound cluster separation
+
+Branch:   g1-m11-panphon-terms
+PR title: glossary(1): M11 panphon terms and decision backlog
 ```
 
 Create the branch at the start of the work session, before writing any code or
