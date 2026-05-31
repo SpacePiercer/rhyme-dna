@@ -179,6 +179,22 @@ every domain-specific term, and (B) a dated backlog of measurement/linguistic de
 of every decision that shaped how rhymes are scored — added once the work is merged, not
 mixed into the technical milestone PR.
 
+### Rule 11 — No unilateral big decisions; list decisions for sign-off
+
+Never make a big or architectural decision on your own. This includes (but is not
+limited to): choosing a scoring formula or threshold, changing how sounds/rhymes are
+compared, picking an algorithm or data source, altering pipeline structure, or anything
+that changes the meaning of the output. Surface the choice, explain the options in plain
+language with examples, and wait for my approval before implementing.
+
+**End every message with a "Decisions" list** — a short, numbered list of the decisions
+you have reached or are proposing, each marked as either already-agreed or
+needs-my-sign-off. If a message genuinely involved no decisions, write
+"Decisions: none this message."
+
+**Why this exists:** I steer the direction of this project. Seeing every pending decision
+in one place, in plain terms, is how I stay in control and catch wrong turns early.
+
 ---
 
 ## Running the notebook
