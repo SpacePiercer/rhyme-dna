@@ -61,6 +61,11 @@ Divide the two resulted sections by a pharase: "Here's the PSEUDOCODE version of
 code chunk above". Its purpose is twofold: it lets me verify you are doing the right 
 thing, and it helps me understand the code without reading every line.
 
+This applies to **every** piece of code you run or produce — not only code written to
+files or notebook cells, but also ad-hoc/inline scripts executed in the terminal
+(e.g. `python -c "..."` probes, one-off exploration scripts). Whenever you run such a
+script, include its pseudo-code in the same message.
+
 Format:
 ```
 # PSEUDO-CODE
