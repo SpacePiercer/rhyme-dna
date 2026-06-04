@@ -1,3 +1,9 @@
+---
+title: ROADMAP
+type: note
+permalink: verse-dna/roadmap
+---
+
 # ROADMAP.md — Verse DNA
 
 Forward-looking milestone plan. Each milestone gets its own chat named `Milestone N`.

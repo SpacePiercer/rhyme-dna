@@ -1,3 +1,9 @@
+---
+title: DECISIONS
+type: note
+permalink: verse-dna/decisions
+---
+
 # Verse DNA — Decision Log
 
 This file records architectural and implementation decisions made during development,
