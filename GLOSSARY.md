@@ -1,3 +1,9 @@
+---
+title: GLOSSARY
+type: note
+permalink: verse-dna/glossary
+---
+
 # GLOSSARY.md — Verse DNA
 
 A plain-language dictionary of the domain-specific terms used in this project, plus a

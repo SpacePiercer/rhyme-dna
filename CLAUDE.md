@@ -1,3 +1,9 @@
+---
+title: CLAUDE
+type: note
+permalink: verse-dna/claude
+---
+
 # CLAUDE.md — Verse DNA
 
 This file contains standing instructions for every chat in this project.
