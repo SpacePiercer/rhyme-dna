@@ -565,7 +565,7 @@ due to `of`/`was` joining cluster D — cosmetic only.
   "ow-ending" family — matching how they sound in fast delivery. Separating them
   would need a fragile ~0.82 cut; that grouping question moves to M12/M13.
 - **Bare vowels kept as scheme participants** (no exclusion). Proper handling of
-  single-sound rhyme units is deferred to the stream-based milestone (M16), which
+  single-sound rhyme units is deferred to the stream-based milestone (M14), which
   drops word/line boundaries.
 
 **Before/after (real data):**
@@ -592,8 +592,8 @@ rhyme judgments is Milestone 17.
 - Milestone 12: phoneme-class letter colouring (DNA view) — default output mode.
 - Milestone 13: rgba alpha-encoded colour intensity for rhyme cluster view.
 - Milestone 14: global phoneme-stream rhyme detection — replaces tail-walk entirely.
-- Milestone 16: complexity scoring tied to OUTPUT_MODE = "rhyme" cluster output.
-- Milestone 17: replace letter-based evaluation with pairwise cluster identity check.
+- Milestone 18: complexity scoring tied to OUTPUT_MODE = "rhyme" cluster output.
+- Milestone 19: replace letter-based evaluation with pairwise cluster identity check.
 - Phoneme-stream repo: separate development track.
 - Language support: English only for now.
 
