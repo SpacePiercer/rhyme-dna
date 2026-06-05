@@ -521,6 +521,68 @@ due to `of`/`was` joining cluster D — cosmetic only.
   Milestone 11 deletes it outright in favour of panphon
   feature-overlap ratios. Patching it now would be throwaway work.
 
+### Milestone 11 — Replace Similarity Engine with panphon
+
+**What was done:**
+
+- Deleted the hand-coded `PHONEME_CLASSES`, `_SUPERCLASS`, `SAME_CLASS_SCORE`,
+  `SAME_SUPERCLASS_SCORE` and the tail-walk scorers
+  (`longest_common_tail_similarity`, `phoneme_sequence_similarity`) from
+  `similarity_engine.py`.
+- New scorer `rhyme_unit_similarity()` uses panphon's weighted **feature edit
+  distance** via `min_edit_distance`: a substitution costs panphon's weighted
+  feature difference between the two sounds; an inserted/deleted sound costs a
+  bounded penalty. Score = `1 − distance / max(sound counts)`, floored at 0.
+- Two selectable methods, set by module config constants (`SIMILARITY_METHOD`,
+  `SIMILARITY_PENALTY`, `SIMILARITY_CAP`):
+  - **D** — flat penalty per inserted/deleted sound (**default, 0.75**)
+  - **C** — weighted cost capped per inserted/deleted sound (cap 1.0)
+- `phoneme_similarity()` reimplemented on panphon features:
+  `1 − weighted_substitution_cost / SEG_COST` (kept for the M12 DNA view).
+- `rhyme_similarity()` is now mode-agnostic — all rhyme modes share the one
+  panphon scorer (the `mode` argument is retained but no longer routes).
+- `filter_clusters()` (`html_generation.py`) now gates on **deep members**
+  (rhyme unit depth ≥ `min_phonemes`) rather than the shallowest member, so a
+  bare vowel such as "I" stays in a cluster for rendering without suppressing it.
+- Tests: `python/tests/test_similarity_engine.py` (11) and
+  `test_html_generation.py` (5); `conftest.py` added so `pytest` resolves the
+  `python` package. 16/16 pass.
+
+**Key decisions (and why):**
+
+- **Method + value chosen by a sweep** over the verse's real rhyme units: D@0.75
+  gave the cleanest perfect/slant/non-rhyme separation while keeping slant scores
+  perceptually high. C@1.0 kept as a stricter alternative. Both are swap-ready for
+  the M17 learned-weights milestone.
+- **Raw scores kept** as the stable, cross-song similarity; min-max normalization
+  is only an optional clustering-time transform, never baked in (it is unstable
+  across songs and fights perception).
+- **Diphthongs** left as panphon's default two-segment split (`aw` → a + w); a
+  one-segment representation measurably hurt separation on this verse, so it is
+  deferred to M17 (let learned weights decide).
+- **Clustering threshold kept at 0.7 (Option B):** the new scorer rates -oud and
+  -ound as genuinely close (`crowd/mound = 0.812`), so 0.7 merges them into one
+  "ow-ending" family — matching how they sound in fast delivery. Separating them
+  would need a fragile ~0.82 cut; that grouping question moves to M12/M13.
+- **Bare vowels kept as scheme participants** (no exclusion). Proper handling of
+  single-sound rhyme units is deferred to the stream-based milestone (M16), which
+  drops word/line boundaries.
+
+**Before/after (real data):**
+
+```
+crowd / mound  (-oud vs -ound, one inserted 'n')
+  old naive edit distance:  0.000   (looked like a non-rhyme)
+  M11 scorer (D@0.75):      0.812   (clear slant rhyme)
+
+Rendered clusters:
+  before: -ound, -oud, -ight as three separate families
+  after:  -ound + -oud merged ("ow"); -ight now also folds in white/tonight and "I"
+```
+
+**Note:** the feature weights are panphon's defaults; learning them from human
+rhyme judgments is Milestone 17.
+
 ---
 
 ## Open questions / next steps

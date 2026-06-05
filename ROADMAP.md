@@ -128,34 +128,29 @@ and not consulted on IPA input — slant scoring collapses to identity-only
 match exactly. M11 deletes the class table outright, so patching it would be
 throwaway work.
 
+### [x] Milestone 11 — Replace Similarity Engine with panphon
+
+**What was done:**
+- Deleted the hand-coded `PHONEME_CLASSES` table, score constants, and the
+  tail-walk scorers from `similarity_engine.py`
+- New `rhyme_unit_similarity()` scores rhyme units with panphon's weighted
+  feature edit distance (`min_edit_distance`): weighted substitution cost plus
+  a bounded insert/delete penalty, normalised by sound count
+- Two selectable methods via config constants — **D** (flat penalty, default
+  0.75) and **C** (capped weighted cost); raw scores kept
+- `phoneme_similarity()` reimplemented on panphon features; `rhyme_similarity()`
+  is now mode-agnostic
+- `filter_clusters()` gates on *deep* members so bare vowels ("I") stay in a
+  cluster without blocking it
+- Clustering threshold kept at 0.7 (**Option B**) → -ound / -oud merge into one
+  "ow-ending" family; diphthong-as-one and bare-vowel handling deferred (M17 / M16)
+- Tests: `python/tests/` (16 passing); notebook re-run end-to-end, both families render
+
+**Decision detail:** see `DECISIONS.md` → "Milestone 11 — Replace Similarity Engine with panphon".
+
 ---
 
 ## Upcoming
-
-### [ ] Milestone 11 — Replace Similarity Engine with panphon
-
-**Goal:** replace the hand-coded `PHONEME_CLASSES` table and score constants with
-phonological feature vectors from the `panphon` library, so phoneme similarity is
-grounded in articulatory features rather than manual decisions.
-
-Subgoals:
-- Install `panphon`; build an `ipa_to_features()` lookup returning a feature vector
-  for any IPA symbol
-- Remove `PHONEME_CLASSES`, `_SUPERCLASS`, `SAME_CLASS_SCORE`, `SAME_SUPERCLASS_SCORE`
-  entirely from `similarity_engine.py`
-- Implement `phoneme_similarity(p1, p2)` returning a feature-overlap ratio (0.0–1.0)
-  computed from the two symbols' panphon vectors — no hand-coded tiers
-- Update `longest_common_tail_similarity()` to call the new scorer
-- Run spot-checks against the M9 score table to verify directional correctness
-
-**Why this matters:** the current two-tier table (0.7 / 0.4) is a manual approximation
-of phonological distance. Feature overlap ratio replaces magic constants with a
-principled continuous measure that generalises to any IPA symbol without table
-maintenance.
-
-**Depends on:** Milestone 10.
-
----
 
 ### [ ] Milestone 12 — Phoneme-Class Letter Colouring (DNA View)
 
