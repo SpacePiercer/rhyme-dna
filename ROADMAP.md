@@ -143,7 +143,7 @@ throwaway work.
 - `filter_clusters()` gates on *deep* members so bare vowels ("I") stay in a
   cluster without blocking it
 - Clustering threshold kept at 0.7 (**Option B**) → -ound / -oud merge into one
-  "ow-ending" family; diphthong-as-one and bare-vowel handling deferred (M17 / M16)
+  "ow-ending" family; diphthong-as-one and bare-vowel handling deferred (M17 / M14)
 - Tests: `python/tests/` (16 passing); notebook re-run end-to-end, both families render
 
 **Decision detail:** see `DECISIONS.md` → "Milestone 11 — Replace Similarity Engine with panphon".
