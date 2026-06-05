@@ -65,6 +65,10 @@ This initial version is the one-time bootstrap that rode with the rules introduc
 - **Stress** — which syllable in a word is said with more force. In *gui-TAR* the second
   syllable is stressed. IPA marks it with `ˈ` (primary) or `ˌ` (secondary) before the
   syllable.
+- **Natural class** — a group of sounds that share features and behave alike, e.g. the
+  nasals `m`/`n`/`ŋ` (all made by sending air through the nose) or the broad group of all
+  vowels. Defined by how humans make sounds, so it is the same for every song — the basis
+  for colouring sounds by family in later milestones.
 
 ### Rhyme concepts
 
@@ -88,16 +92,41 @@ This initial version is the one-time bootstrap that rode with the rules introduc
 
 ### Scoring terms (this project's own measures)
 
-- **Feature-overlap measure** — our score for how similar two sounds are: of panphon's
-  24 features, what fraction do the two sounds agree on. `1.0` = identical, `0.0` =
-  opposite on everything. Formula: `1 − (sum of |feature differences|) / (2 × 24)`.
-- **Longest-common-tail similarity** — our rhyme score for two words: walk inward from
-  the *end* of both, adding up how well each sound matches, and stop at the first clear
-  mismatch.
-- **Walk-stop threshold** — the cutoff used by the tail walk: keep matching sounds while
-  their overlap is at or above this number; stop below it.
+- **Phoneme similarity** — how alike two single sounds are, on a `0.0`–`1.0` scale. Built
+  from panphon: `1 − (panphon's weighted difference between the two sounds) ÷ (cost of a
+  whole sound)`. `1.0` = identical; near-identical sounds like `t` and retroflex `ʈ` score
+  about 0.93. Replaced the old hand-coded 0.7 / 0.4 class table in Milestone 11.
+- **Edit distance** — the cheapest set of changes to turn one sequence of sounds into
+  another, using three moves: **substitution** (swap one sound for another),
+  **insertion** (add a sound), **deletion** (remove a sound). Each move has a cost; the
+  cheapest total is the distance.
+- **Weighted feature edit distance** — the core rhyme score since Milestone 11. It runs
+  an edit distance over two rhyme units where a *substitution* costs panphon's weighted
+  feature difference between the two sounds, and an *insertion/deletion* costs a fixed
+  penalty. The total cost ÷ the number of sounds, subtracted from 1, gives the `0.0`–`1.0`
+  rhyme score.
+- **Feature weight** — panphon's importance value for each feature: major identity
+  features (vowel-vs-consonant) weigh most, fine details least. They sum to about 7.25,
+  which is also the cost panphon charges to insert or delete one whole sound.
+- **Penalty method D / cap method C** — two interchangeable ways to charge for a missing
+  or extra sound. **D** (default) charges a small flat penalty (0.75); **C** caps the
+  weighted cost (at 1.0). Chosen by a sweep on the verse — D@0.75 gave the cleanest
+  separation of perfect vs slant vs non-rhyme. Raw scores are kept (no rescaling).
 - **Clustering threshold** — the score two words must reach to be grouped into the same
-  rhyme colour/cluster.
+  rhyme colour/cluster. Kept at `0.7` in Milestone 11, which groups the `-oud` and `-ound`
+  families together (they score ~0.81 — genuinely close in sound).
+- **Deep member** — a cluster member whose rhyme unit has at least two sounds. Since
+  Milestone 11 the render filter counts only deep members, so a bare vowel like "I" can
+  sit inside a rhyme group without causing the whole group to be hidden.
+- **Longest-common-tail similarity** *(retired in Milestone 11)* — the previous rhyme
+  score: walk inward from the *end* of both words, adding up how well each sound matched,
+  stopping at the first clear mismatch. Replaced by the weighted feature edit distance.
+- **Walk-stop threshold** *(retired in Milestone 11)* — the cutoff that told the old tail
+  walk when to stop. Gone with the tail walk.
+- **Feature-overlap measure** *(superseded in Milestone 11)* — the originally-planned
+  simple version: the fraction of panphon's 24 features two sounds agree on,
+  `1 − sum|diff| ÷ (2 × 24)`. The shipped scorer uses panphon's *weighted* feature
+  difference instead (see *Phoneme similarity* and *Weighted feature edit distance*).
 
 ---
 
@@ -108,6 +137,10 @@ Branch names before the per-milestone branching workflow are marked *(early hist
 
 | Date | Branch | Area | Decision | Effect |
 |---|---|---|---|---|
+| 2026-06-04 | `m11-panphon-similarity` | Rhyme scorer | Score rhyme units with panphon **weighted feature edit distance** (substitution = weighted feature difference; insert/delete = bounded penalty); method **D@0.75** default, **C@1.0** selectable; raw scores kept | Insertion slant rhymes score correctly: `crowd`/`mound` 0.000 → **0.812**; perfect = 1.0, non-rhymes ≤ 0.44 |
+| 2026-06-04 | `m11-panphon-similarity` | Clustering threshold | Keep threshold at **0.7** (Option B) instead of raising it | `-oud` and `-ound` merge into one "ow-ending" family (they score ~0.81); finer grouping deferred to M12/M13 |
+| 2026-06-04 | `m11-panphon-similarity` | Render filter | `filter_clusters` counts **deep members** (≥2 sounds), not the shallowest member | A bare vowel ("I") can join a group without hiding it; the `-ight` family renders with "I" included |
+| 2026-06-04 | `m11-panphon-similarity` | Tail walk | **Retire** `longest_common_tail_similarity` and its walk-stop threshold | Whole rhyme units compared by edit distance; scoring no longer halts at the first mismatch |
 | 2026-05-31 | `m11-panphon-similarity` | Diphthong handling | Approach **B (segment-expand)**: split tokens like `aj`/`aw` into their panphon segments and compare sound-by-sound, rather than averaging them into one vector | `aw` is compared as `a`+`w`; rhyme tails line up at the sound level instead of the token level |
 | 2026-05-31 | `m11-panphon-similarity` | Similarity scorer | Replace the hand-coded phoneme-class table (0.7 / 0.4) with panphon **feature-overlap** | Sound similarity now comes from real phonetics; e.g. `t`/`d` score very high automatically, no manual table |
 | 2026-05-31 | `m11-panphon-similarity` | Environment | Set `PYTHONUTF8=1` for `mfa_env` so panphon can read its IPA data file on Windows | Without it, importing panphon crashes; fix lets the notebook run end-to-end |
@@ -116,6 +149,6 @@ Branch names before the per-milestone branching workflow are marked *(early hist
 | 2026-03-11 | *(early history)* | Rhyme matching | Add longest-common-tail similarity + configurable `RHYME_MODE` | Multi-syllable words (e.g. *underground*) match on their shared ending rather than failing |
 | 2026-03-09 | *(early history)* | Similarity scale | Upgrade similarity from yes/no to a continuous 0.0–1.0 score | Rhymes can now be ranked by strength, not just "rhyme or not" |
 
-> **Pending in M11:** the walk-stop threshold and clustering threshold will be
-> re-tuned once the feature-overlap numbers are measured (entry to be added with the
-> chosen values and their effect on the `-oud` / `-ound` / `-ight` clusters).
+> **Resolved in M11:** the walk-stop threshold was retired with the tail walk; the
+> clustering threshold was kept at `0.7` (Option B), which merges the `-oud` and `-ound`
+> families and lets the `-ight` family render with "I" included. See the 2026-06-04 rows.
