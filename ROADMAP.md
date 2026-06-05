@@ -267,7 +267,60 @@ Subgoals:
 
 ---
 
-### [ ] Milestone 16 — Rhyme Complexity Scoring
+### [ ] Milestone 16 — Rhyme-Judgment Dataset & Score Logging
+
+**Goal:** start building the labelled data the weight-learning milestone will need, and
+make the pipeline log every pair it scores — so a training set accumulates passively
+while other work continues.
+
+Subgoals:
+- Add lightweight logging: every scored pair (`word A`, `word B`, rhyme units, raw
+  score, method) appended to a versioned dataset file (`.jsonl` / `.csv`)
+- Build a tiny rating surface (notebook cell or CLI) to attach a human label to a pair —
+  either a 0–1 rating or, preferably, a *ranking* ("A rhymes more than B")
+- Define the dataset schema once, stable and versioned, so future training reads it
+  directly
+- Seed it with the current verse's pairs, hand-labelled by ear
+
+**Why this matters:** there is no target to learn from today. Collecting judgments is
+the real unlock and the slowest part — starting early means data is ready when the
+fitting milestone arrives. (Passive score-logging can begin informally as soon as the
+M11 scorer exists, even before this milestone is formally reached.)
+
+**Depends on:** Milestone 11 (panphon scorer producing scores to log).
+
+---
+
+### [ ] Milestone 17 — Learn panphon Feature Weights from Judgments
+
+**Goal:** replace the hand-chosen feature weights (and insert/delete cost) with values
+*fitted* to human rhyme judgments, so the scorer matches how rhymes actually sound
+rather than how they were guessed.
+
+Subgoals:
+- Keep the scorer pure and parameterised: weights + costs passed in, never hard-coded
+  (already the M11 design)
+- Loss = **ranking / contrastive** (keep perfect > slant > non with a margin) — easier
+  to label than absolute numbers; optionally support regression against 0–1 ratings
+- Fit **gradient-free first** (Bayesian optimisation / evolutionary search) — only ~22
+  weights, which sidesteps the non-differentiable edit-distance `min()`; a differentiable
+  "soft" edit distance is a later option if needed
+- Store learned weights in a swappable config file, so the trained metric drops in by
+  replacing one file
+- Evaluate fitted weights against a held-out set of judgments; compare separation /
+  ordering to the hand-tuned D@0.75 baseline
+- Candidate first use of learned weights: revisit the deferred "diphthong as one segment"
+  question (let the data decide how much a diphthong's halves count)
+
+**Why this matters:** it turns "a penalty was picked by hand" into "the data picked the
+weights." It is the natural endpoint of making panphon the source of truth — the
+*weights* become learned, not assumed.
+
+**Depends on:** Milestone 16 (labelled data) and Milestone 11 (panphon scorer).
+
+---
+
+### [ ] Milestone 18 — Rhyme Complexity Scoring
 
 **Goal:** produce a numeric score per verse reflecting rhyme density and sophistication.
 Operates on `OUTPUT_MODE = "rhyme"` cluster output only.
@@ -285,7 +338,7 @@ Subgoals:
 
 ---
 
-### [ ] Milestone 17 — Structural Refactor for Modularity
+### [ ] Milestone 19 — Structural Refactor for Modularity
 
 **Goal:** separate the pipeline into clean modules ready for API wrapping.
 
@@ -305,7 +358,7 @@ Subgoals:
 
 ---
 
-### [ ] Milestone 18 — Web App MVP
+### [ ] Milestone 20 — Web App MVP
 
 **Goal:** wrap the pipeline in a minimal web interface — song input, rhyme scheme
 visualisation output — as the first step toward the Genius-like long-term vision.
@@ -319,11 +372,11 @@ Subgoals:
   deployable service
 
 **Note:** scope and approach to be decided at milestone start once the core pipeline
-(M10–M17) is stable.
+(M10–M19) is stable.
 
 ---
 
-## Long-term vision (post-Milestone 18)
+## Long-term vision (post-Milestone 20)
 
 - Web app with song URL input → rhyme scheme visualisation output
 - Custom audio-to-phoneme model (to replace MFA for non-standard pronunciations)
