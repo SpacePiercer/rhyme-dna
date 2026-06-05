@@ -114,13 +114,15 @@ def filter_clusters(clusters, rhyme_candidates, min_phonemes=2):
     """
     Filter clusters to only those worth rendering.
 
-    A cluster passes if:
-      - Its shared (minimum) rhyme unit length is >= min_phonemes
-      - AND either:
-          (a) it has >= 2 members appearing in >= 2 different lines, OR
-          (b) it has >= 3 members total
+    A cluster passes based on its "deep" members — those whose rhyme unit has
+    >= min_phonemes sounds. Shallow members (e.g. the bare vowel "I", a single
+    sound) stay in the cluster for rendering but neither count toward nor block
+    the gate. A cluster passes if either:
+          (a) it has >= 2 deep members appearing in >= 2 different lines, OR
+          (b) it has >= 3 deep members total
 
-    Singleton clusters (size 1) never pass.
+    Clusters with fewer than 2 deep members never pass (this also blocks
+    singletons and all-shallow clusters).
 
     Parameters
     ----------
@@ -138,10 +140,13 @@ def filter_clusters(clusters, rhyme_candidates, min_phonemes=2):
         The cluster labels that pass the quality filter.
     """
 
-    # Build per-label metadata: members, line indices, min rhyme unit length
-    label_to_members = {}      # label -> list of words
-    label_to_lines = {}        # label -> set of line indices
-    label_to_min_ru = {}       # label -> minimum rhyme unit length across members
+    # Build per-label metadata. A member is "deep" if its rhyme unit has at
+    # least min_phonemes sounds. Only deep members count toward the quality
+    # gate; shallow members (e.g. the bare vowel "I") still belong to the
+    # cluster for rendering but do not block an otherwise-strong cluster.
+    label_to_members = {}        # label -> list of words (all members)
+    label_to_deep_words = {}     # label -> set of deep member words
+    label_to_deep_lines = {}     # label -> set of line indices with a deep member
 
     for entry in rhyme_candidates:
         word = entry["end_word"]
@@ -153,28 +158,26 @@ def filter_clusters(clusters, rhyme_candidates, min_phonemes=2):
 
         if label not in label_to_members:
             label_to_members[label] = []
-            label_to_lines[label] = set()
-            label_to_min_ru[label] = ru_len
-        else:
-            label_to_min_ru[label] = min(label_to_min_ru[label], ru_len)
+            label_to_deep_words[label] = set()
+            label_to_deep_lines[label] = set()
 
         if word not in label_to_members[label]:
             label_to_members[label].append(word)
 
-        label_to_lines[label].add(entry["line_index"])
+        if ru_len >= min_phonemes:
+            label_to_deep_words[label].add(word)
+            label_to_deep_lines[label].add(entry["line_index"])
 
     passing = set()
 
     for label in label_to_members:
-        member_count = len(label_to_members[label])
-        line_count = len(label_to_lines[label])
-        min_ru = label_to_min_ru[label]
+        deep_count = len(label_to_deep_words[label])
+        deep_line_count = len(label_to_deep_lines[label])
 
-        depth_ok = (min_ru >= min_phonemes)
-        spread_ok = (member_count >= 2 and line_count >= 2)
-        density_ok = (member_count >= 3)
+        spread_ok = (deep_count >= 2 and deep_line_count >= 2)
+        density_ok = (deep_count >= 3)
 
-        if depth_ok and (spread_ok or density_ok):
+        if spread_ok or density_ok:
             passing.add(label)
 
     return passing
