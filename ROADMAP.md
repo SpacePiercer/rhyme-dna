@@ -242,6 +242,16 @@ Subgoals:
 - Retire `longest_common_tail_similarity()`, `extract_rhyme_unit()`, and
   `extract_rhyme_candidates()` once the new detector covers their use cases
 
+**Known false-negative to address here (found in M11):** `ignites`
+(`['aj','t','s']`) is a true `-ight` rhyme — it scores 0.812 against `light` — but
+is dropped from the cluster. The current clustering is greedy *single-link from a
+seed word*: each cluster compares candidates only to its first (seed) word, and the
+`-ight` cluster is seeded by the bare vowel "I" (`['aj']`), against which `ignites`
+scores only 0.625 (below the 0.7 threshold). A boundary-free stream detector with no
+per-cluster seed should catch it. (By contrast, `shines` — `['aj','n','z']`, the
+`-ines` ending — scores 0.438 against `light`; it is a genuine slant the scorer
+rates lower, a separate question, not a clustering bug.)
+
 **Depends on:** Milestone 11 (panphon similarity as the core comparison function).
 
 ---
@@ -257,6 +267,11 @@ Subgoals:
   overlapping sounds
 - Document failure rate and its effect on rhyme detection accuracy
 - Decision point: is MFA sufficient, or is a hybrid acoustic approach needed?
+
+**Concrete failure example (found in M11):** MFA aligns `kite` as
+`['c', 'iː', 'ʈ', 'ə']` (a palatal `c`, long `iː`, retroflex `ʈ`, and a stray
+trailing schwa) instead of /k aɪ t/. Its rhyme unit becomes the junk `['ə']`, so it
+never clusters with the `-ight` family — a clear mis-alignment to catalogue here.
 
 **Note:** do not attempt to fix MFA failures yet — this milestone is evaluation only.
 
