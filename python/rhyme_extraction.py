@@ -1,4 +1,22 @@
+import string
+
 from python.similarity_engine import normalize_phoneme
+
+# Punctuation stripped from the ENDS of a lyric token before looking it up in
+# the phoneme dictionary. MFA normalises words the same way during alignment
+# (e.g. "with," -> "with", "'cause" -> "cause"), so the lyric side must match.
+# Word-internal apostrophes are preserved because strip() only removes from the
+# ends, so "i'm" stays "i'm" while "'cause" becomes "cause".
+_EDGE_PUNCTUATION = string.punctuation
+
+
+def _normalize_token(word):
+    """Lowercase a lyric token and strip surrounding punctuation.
+
+    Returns the cleaned token, or "" if the token was punctuation-only.
+    Mirrors MFA's word normalisation so lyric words match the TextGrid keys.
+    """
+    return word.lower().strip(_EDGE_PUNCTUATION)
 
 # IPA vowel characters found in english_mfa output.
 # Used to locate the stressed vowel in extract_rhyme_unit().
@@ -121,7 +139,8 @@ def extract_rhyme_candidates(
         if not line:
             continue
 
-        words = line.lower().split()
+        # Strip surrounding punctuation so tokens match MFA's clean word keys.
+        words = [_normalize_token(w) for w in line.split()]
 
         if detection_mode == "end_only":
             candidates = [(len(words) - 1, words[-1])]
@@ -133,6 +152,9 @@ def extract_rhyme_candidates(
             raise ValueError(f"Unknown detection_mode: {detection_mode}")
 
         for word_index, word in candidates:
+
+            if not word:
+                continue
 
             if word not in word_to_phonemes:
                 print(f"WARNING: phonemes not found for '{word}' (line {line_index})")
