@@ -291,7 +291,7 @@ and no commit has been made yet.
 Always use the `gh` CLI for all GitHub interactions — creating PRs, viewing PRs,
 checking CI status, merging, listing issues, etc. Never use the GitHub web UI
 instructions or raw `git push` + manual PR creation. The repo is
-`SpacePiercer/verse-dna`.
+`SpacePiercer/rhyme-dna`.
 
 ### Pull requests
 
