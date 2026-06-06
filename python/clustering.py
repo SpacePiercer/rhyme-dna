@@ -18,12 +18,30 @@ def get_threshold(rhyme_mode):
     return SIMILARITY_THRESHOLD
 
 
+def cluster_label(index):
+    """Convert a 0-based index to an alphabetic label: 0->A, 25->Z, 26->AA, ...
+
+    Uses bijective base-26 so labels are ALWAYS ASCII letters. This matters
+    because labels are used directly as CSS class names (`.rhyme-<label>`) and
+    HTML identifiers: the old `chr(ord(c) + 1)` scheme walked into punctuation
+    after 'Z' (chr(91) == '[', chr(92) == '\\', ...), producing invalid CSS like
+    `.rhyme-[` that broke highlighting for the 27th+ cluster.
+    """
+    label = ""
+    index += 1  # shift to 1-based for bijective base-26
+    while index > 0:
+        index, remainder = divmod(index - 1, 26)
+        label = chr(ord("A") + remainder) + label
+    return label
+
+
 def cluster_rhymes(similarity_matrix, threshold=SIMILARITY_THRESHOLD):
 
     words = list(similarity_matrix.keys())
     clusters = {}
     cluster_labels = {}
-    current_cluster = "A"
+    cluster_index = 0
+    current_cluster = cluster_label(cluster_index)
 
     for word in words:
 
@@ -44,7 +62,8 @@ def cluster_rhymes(similarity_matrix, threshold=SIMILARITY_THRESHOLD):
                 clusters[current_cluster].append(other)
                 cluster_labels[other] = current_cluster
 
-        current_cluster = chr(ord(current_cluster) + 1)
+        cluster_index += 1
+        current_cluster = cluster_label(cluster_index)
 
     return cluster_labels, clusters
 
@@ -61,7 +80,7 @@ def cluster_exact_rhymes(rhyme_candidates):
 
         if rhyme_tuple not in clusters:
 
-            label = chr(ord('A') + current_label)
+            label = cluster_label(current_label)
             clusters[rhyme_tuple] = label
             current_label += 1
 
