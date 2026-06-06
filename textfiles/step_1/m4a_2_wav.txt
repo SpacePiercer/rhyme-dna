@@ -2,4 +2,6 @@ Put everything from 'input/current_input' & 'output/current_output' into the 'ba
 
 
 
-ffmpeg -i m4a/input.m4a -ac 1 -ar 16000 -sample_fmt s16 input/current_input/input.wav
+ffmpeg is not on PATH — it only exists inside mfa_env, so prefix the command with `conda run -n mfa_env`:
+
+conda run -n mfa_env ffmpeg -i m4a/input.m4a -ac 1 -ar 16000 -sample_fmt s16 input/current_input/input.wav
