@@ -8,6 +8,9 @@ kb/
 _debug_*.py
 _debug_*.txt
 
+# Local reference articles (research reading, not tracked)
+_article_*
+
 # Instruction/documentation files
 #textfiles/
 
