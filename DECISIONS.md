@@ -279,7 +279,7 @@ behaviour is preserved unchanged.
 `expected_clusters` in the notebook is fragile: it stores cluster *letters* (A, B, C…)
 which shift whenever the word pool changes (e.g. switching between `"end_only"` and
 `"full_line"` modes). Rather than updating the dict every time the mode changes, the
-evaluation is left as-is for now. This will be replaced in Milestone 13 with a
+evaluation is left as-is for now. This will be replaced in Milestone 22 with a
 **pairwise cluster identity** check: instead of comparing letters, the evaluator asks
 "do these two words share a label?" — which is stable across any pool size or mode.
 
@@ -343,7 +343,7 @@ evaluation is left as-is for now. This will be replaced in Milestone 13 with a
   tail matches (e.g. `N D` in `and` vs `mound`) over-merge at that threshold.
   Recommended pairing: `"full_line"` + `"stressed"` + threshold `0.7`.
 - `expected_clusters` evaluation left as-is; will be replaced with pairwise identity
-  check in Milestone 14.
+  check in Milestone 22.
 
 **Test verses:**
 ```
@@ -538,7 +538,7 @@ due to `of`/`was` joining cluster D — cosmetic only.
   - **D** — flat penalty per inserted/deleted sound (**default, 0.75**)
   - **C** — weighted cost capped per inserted/deleted sound (cap 1.0)
 - `phoneme_similarity()` reimplemented on panphon features:
-  `1 − weighted_substitution_cost / SEG_COST` (kept for the M12 DNA view).
+  `1 − weighted_substitution_cost / SEG_COST` (kept for the M15 DNA view).
 - `rhyme_similarity()` is now mode-agnostic — all rhyme modes share the one
   panphon scorer (the `mode` argument is retained but no longer routes).
 - `filter_clusters()` (`html_generation.py`) now gates on **deep members**
@@ -553,19 +553,19 @@ due to `of`/`was` joining cluster D — cosmetic only.
 - **Method + value chosen by a sweep** over the verse's real rhyme units: D@0.75
   gave the cleanest perfect/slant/non-rhyme separation while keeping slant scores
   perceptually high. C@1.0 kept as a stricter alternative. Both are swap-ready for
-  the M17 learned-weights milestone.
+  the M20 learned-weights milestone.
 - **Raw scores kept** as the stable, cross-song similarity; min-max normalization
   is only an optional clustering-time transform, never baked in (it is unstable
   across songs and fights perception).
 - **Diphthongs** left as panphon's default two-segment split (`aw` → a + w); a
   one-segment representation measurably hurt separation on this verse, so it is
-  deferred to M17 (let learned weights decide).
+  deferred to M20 (let learned weights decide).
 - **Clustering threshold kept at 0.7 (Option B):** the new scorer rates -oud and
   -ound as genuinely close (`crowd/mound = 0.812`), so 0.7 merges them into one
   "ow-ending" family — matching how they sound in fast delivery. Separating them
-  would need a fragile ~0.82 cut; that grouping question moves to M12/M13.
+  would need a fragile ~0.82 cut; that grouping question moves to M15/M16.
 - **Bare vowels kept as scheme participants** (no exclusion). Proper handling of
-  single-sound rhyme units is deferred to the stream-based milestone (M14), which
+  single-sound rhyme units is deferred to the stream-based milestone (M17), which
   drops word/line boundaries.
 
 **Before/after (real data):**
@@ -581,7 +581,7 @@ Rendered clusters:
 ```
 
 **Note:** the feature weights are panphon's defaults; learning them from human
-rhyme judgments is Milestone 17.
+rhyme judgments is Milestone 20.
 
 ---
 
@@ -589,11 +589,14 @@ rhyme judgments is Milestone 17.
 
 - Milestone 10: switch MFA to IPA — prerequisite for panphon integration.
 - Milestone 11: replace hand-coded similarity table with panphon feature vectors.
-- Milestone 12: phoneme-class letter colouring (DNA view) — default output mode.
-- Milestone 13: rgba alpha-encoded colour intensity for rhyme cluster view.
-- Milestone 14: global phoneme-stream rhyme detection — replaces tail-walk entirely.
-- Milestone 18: complexity scoring tied to OUTPUT_MODE = "rhyme" cluster output.
-- Milestone 19: replace letter-based evaluation with pairwise cluster identity check.
+- Milestone 12: assonance-first (vowel-weighted) similarity — coda-discount knob `c`.
+- Milestone 13: stress-aware scoring — weight the stressed vowel.
+- Milestone 14: syllable decomposition — per-syllable comparison.
+- Milestone 15: phoneme-class letter colouring (DNA view) — default output mode.
+- Milestone 16: rgba alpha-encoded colour intensity for rhyme cluster view.
+- Milestone 17: global phoneme-stream rhyme detection — replaces tail-walk entirely.
+- Milestone 21: complexity scoring tied to OUTPUT_MODE = "rhyme" cluster output.
+- Milestone 22: replace letter-based evaluation with pairwise cluster identity check.
 - Phoneme-stream repo: separate development track.
 - Language support: English only for now.
 
@@ -657,7 +660,7 @@ and non-rhyme-pair scores — analogous to Otsu's method in image thresholding).
 This is deferred until the panphon scorer is stable; the threshold is kept as a
 manually set constant for now.
 
-### DNA view — Milestone 12 design decisions
+### DNA view — Milestone 15 design decisions
 
 - **Phoneme classes:** panphon's built-in feature categories are used directly as
   the colour classes. Classes are linguistically defined and stable across songs —
@@ -668,7 +671,7 @@ manually set constant for now.
   colour of the single phoneme they represent.
 - **Output mode switch:** `OUTPUT_MODE = "dna"` (default) / `"rhyme"` (cluster view).
 
-### Rhyme cluster view — Milestone 13 design decisions
+### Rhyme cluster view — Milestone 16 design decisions
 
 Rather than treating cluster membership as binary (in / out), each word's highlight
 will use `rgba(r, g, b, alpha)` where alpha encodes the word's average pairwise
@@ -679,10 +682,10 @@ requiring a second threshold.
 Hue assignment will also be similarity-driven: phonetically related clusters (e.g.
 `-oud` / `-ound`) receive hues that are close together on the colour wheel.
 
-### Tail-walk retirement — Milestone 14
+### Tail-walk retirement — Milestone 17
 
 `longest_common_tail_similarity()`, `extract_rhyme_unit()`, and
-`extract_rhyme_candidates()` are to be retired in Milestone 14 in favour of a
+`extract_rhyme_candidates()` are to be retired in Milestone 17 in favour of a
 boundary-free, stream-based pattern detector.
 
 **Why:** the tail-walk is anchored at word endings and compares fixed-length phoneme
@@ -694,7 +697,7 @@ failure mode. The approach is too rigid to expand upon without accumulating patc
 **What replaces it:** a phoneme-stream detector that treats the full lyric piece as
 one continuous IPA sequence, finds similar subsequences at any position, and maps
 them back to grapheme positions. The exact algorithm (sliding window, local sequence
-alignment, or similar) is to be decided at the start of Milestone 14.
+alignment, or similar) is to be decided at the start of Milestone 17.
 
 The phoneme-stream pipeline that was originally planned as a separate repo (old M18)
 is subsumed by this approach — it is now the core detection method, not a parallel

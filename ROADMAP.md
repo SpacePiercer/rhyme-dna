@@ -152,7 +152,86 @@ throwaway work.
 
 ## Upcoming
 
-### [ ] Milestone 12 — Phoneme-Class Letter Colouring (DNA View)
+### [ ] Milestone 12 — Assonance-First (Vowel-Weighted) Similarity
+
+**Goal:** make the rhyme score driven primarily by shared **vowels** (assonance),
+with consonants — especially the coda (the consonant[s] after the vowel) — counting
+for less. This reflects how fast rap rhyme is actually heard: the vowel scheme carries
+the rhyme; the final consonants vary freely.
+
+Subgoals:
+- Introduce a single **coda-discount knob** `c` into `rhyme_unit_similarity`: consonant
+  substitutions and consonant insert/delete costs are multiplied by `c` (vowel costs
+  unchanged). `c = 1.0` = today's behaviour; `c = 0.0` = pure assonance (codas ignored).
+- Choose `c` by a **sweep validated against an ear-grouped target** (the verse's
+  short-i scheme: *with / clip / hip / gripped / width / tip / slit / it / chips / fit /
+  ultimate*). Pick the value that merges the target group while still excluding
+  wrong-vowel words (e.g. *up*).
+- Keep `c` a swappable parameter (not hard-coded into the formula) so Milestone 20
+  (learned weights) can replace it without code changes.
+
+**Why this matters:** today the engine splits this one audible scheme into three
+clusters by coda (`-ip` / `-it` / `-id̪`). Vowel-weighting merges them into the single
+"short-i" family the listener hears.
+
+**Known boundary (hand off to M13/M17):** vowel-weighting is *vowel-greedy* — it also
+pulls in other words that happen to share the same last vowel (*is, still, give, think,
+explosive*). Distinguishing the *intentional* scheme from *incidental* shared vowels
+needs the stress layer (M13) and/or the position-aware stream detector (M17); it is out
+of scope here.
+
+**Depends on:** Milestone 11 (panphon scorer in place).
+
+---
+
+### [ ] Milestone 13 — Stress-Aware Scoring
+
+**Goal:** use **stress** (which syllable is said with more force) so the *stressed*
+vowel weighs more than unstressed ones — bringing the score closer to which rhymes a
+listener actually perceives as the backbone of a line.
+
+Subgoals:
+- Stop discarding MFA's stress marks: `normalize_phoneme` currently strips `ˈ` (primary)
+  and `ˌ` (secondary) on line 36 of `similarity_engine.py`. Carry that information
+  through extraction instead of throwing it away.
+- Give the stressed vowel extra weight in `rhyme_unit_similarity` (layered on top of the
+  M12 vowel-weighting).
+- **Scope limit:** this is *word-internal lexical* stress only (where a word is normally
+  stressed, e.g. ÚL-ti-mate). The *performed/metrical* accent across the bar (the 1-vs-2
+  groove accents) is NOT available from MFA's labels and is deferred — a possible future
+  proxy is vowel duration from the TextGrid, revisited only if needed.
+
+**Why this matters:** the stressed vowel is the anchor of a rhyme. Weighting it makes
+the engine agree with the ear on which syllable "carries" the rhyme.
+
+**Depends on:** Milestone 12.
+
+---
+
+### [ ] Milestone 14 — Syllable Decomposition
+
+**Goal:** cut multi-syllable words into **syllables** and compare them
+syllable-by-syllable, instead of taking only the single tail from the last stressed
+vowel to the end of the word. This lets a long word participate in a scheme through
+*each* of its syllables (e.g. *ultimate* → ul-ti-mate matching across *utmost · with ·
+it*).
+
+Subgoals:
+- Add a **syllabifier** — a standard algorithm that chops a phoneme stream into
+  syllables by the rise-and-fall of sonority (how open/loud each sound is).
+- Produce a per-syllable representation; compare words (or word-spans) syllable-by-
+  syllable rather than as one tail blob.
+- Keep the M12/M13 vowel- and stress-weighting working on the new per-syllable units.
+
+**Why this matters:** the current "last-vowel-to-end" rhyme unit can only see one
+syllable. Syllable decomposition is the prerequisite for multi-syllable and multi-word
+schemes (which the M17 stream detector then finds across word boundaries).
+
+**Depends on:** Milestone 13. Feeds Milestone 17 (stream detection).
+
+---
+
+### [ ] Milestone 15 — Phoneme-Class Letter Colouring (DNA View)
 
 **Goal:** add a new output mode — the default — where every letter in the lyrics is
 coloured by the phoneme class of the sound it represents, using panphon's built-in
@@ -183,7 +262,7 @@ decisions and no rhyme-unit extraction; phonological relationships emerge visual
 
 ---
 
-### [ ] Milestone 13 — Similarity-Driven Colour Intensity
+### [ ] Milestone 16 — Similarity-Driven Colour Intensity
 
 **Goal:** make the HTML output encode not just *which* cluster a word belongs to, but
 *how strongly* it belongs there — using `rgba` alpha to visualise similarity score.
@@ -215,7 +294,7 @@ full panphon scorer is stable.
 
 ---
 
-### [ ] Milestone 14 — Global Phoneme-Stream Rhyme Detection
+### [ ] Milestone 17 — Global Phoneme-Stream Rhyme Detection
 
 **Goal:** replace the word-ending tail-walk with a boundary-free, stream-based
 pattern detector that finds repeated or similar phoneme subsequences anywhere in
@@ -256,7 +335,7 @@ rates lower, a separate question, not a clustering bug.)
 
 ---
 
-### [ ] Milestone 15 — MFA Limitation Evaluation
+### [ ] Milestone 18 — MFA Limitation Evaluation
 
 **Goal:** stress-test the pipeline on real rap audio and identify where MFA fails.
 
@@ -277,7 +356,7 @@ never clusters with the `-ight` family — a clear mis-alignment to catalogue he
 
 ---
 
-### [ ] Milestone 16 — Rhyme-Judgment Dataset & Score Logging
+### [ ] Milestone 19 — Rhyme-Judgment Dataset & Score Logging
 
 **Goal:** start building the labelled data the weight-learning milestone will need, and
 make the pipeline log every pair it scores — so a training set accumulates passively
@@ -301,7 +380,7 @@ M11 scorer exists, even before this milestone is formally reached.)
 
 ---
 
-### [ ] Milestone 17 — Learn panphon Feature Weights from Judgments
+### [ ] Milestone 20 — Learn panphon Feature Weights from Judgments
 
 **Goal:** replace the hand-chosen feature weights (and insert/delete cost) with values
 *fitted* to human rhyme judgments, so the scorer matches how rhymes actually sound
@@ -326,11 +405,11 @@ Subgoals:
 weights." It is the natural endpoint of making panphon the source of truth — the
 *weights* become learned, not assumed.
 
-**Depends on:** Milestone 16 (labelled data) and Milestone 11 (panphon scorer).
+**Depends on:** Milestone 19 (labelled data) and Milestone 11 (panphon scorer).
 
 ---
 
-### [ ] Milestone 18 — Rhyme Complexity Scoring
+### [ ] Milestone 21 — Rhyme Complexity Scoring
 
 **Goal:** produce a numeric score per verse reflecting rhyme density and sophistication.
 Operates on `OUTPUT_MODE = "rhyme"` cluster output only.
@@ -344,11 +423,11 @@ Subgoals:
 - Produce a per-verse score and a per-line breakdown
 - Visualise as an annotated HTML page (extend `generate_rhyme_html()`)
 
-**Depends on:** Milestone 13 (rhyme cluster output with rgba intensity).
+**Depends on:** Milestone 16 (rhyme cluster output with rgba intensity).
 
 ---
 
-### [ ] Milestone 19 — Structural Refactor for Modularity
+### [ ] Milestone 22 — Structural Refactor for Modularity
 
 **Goal:** separate the pipeline into clean modules ready for API wrapping.
 
@@ -368,7 +447,7 @@ Subgoals:
 
 ---
 
-### [ ] Milestone 20 — Web App MVP
+### [ ] Milestone 23 — Web App MVP
 
 **Goal:** wrap the pipeline in a minimal web interface — song input, rhyme scheme
 visualisation output — as the first step toward the Genius-like long-term vision.
@@ -386,7 +465,7 @@ Subgoals:
 
 ---
 
-## Long-term vision (post-Milestone 20)
+## Long-term vision (post-Milestone 23)
 
 - Web app with song URL input → rhyme scheme visualisation output
 - Custom audio-to-phoneme model (to replace MFA for non-standard pronunciations)
