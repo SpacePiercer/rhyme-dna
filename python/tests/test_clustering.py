@@ -46,23 +46,37 @@ def test_more_than_26_clusters_all_alphabetic():
     assert "[" not in clusters
 
 
-# --- single-linkage chaining (Milestone 12) ---------------------------------
+# --- average-linkage (Milestone 12) -----------------------------------------
 
-def test_single_linkage_chains_through_members():
-    """B does not rhyme with the seed A (0.5) but does with C (0.9), and C
-    rhymes with A (0.9). Single-linkage must pull all three into one cluster by
-    linking B through C — the old seed-only test would have split B off."""
-    words = ["A", "C", "B"]
-    scores = {("A", "C"): 0.9, ("C", "B"): 0.9, ("A", "B"): 0.5}
-
+def _matrix(words, scores):
+    """Build a symmetric similarity matrix (diagonal 1.0) from a pair dict."""
     def s(x, y):
         if x == y:
             return 1.0
         return scores.get((x, y), scores.get((y, x), 0.0))
+    return {x: {y: s(x, y) for y in words} for x in words}
 
-    matrix = {x: {y: s(x, y) for y in words} for x in words}
+
+def test_average_linkage_merges_when_close_to_all_members():
+    """A, B, C are all mutually similar (~0.85) -> one cluster."""
+    words = ["A", "B", "C"]
+    matrix = _matrix(words, {("A", "B"): 0.85, ("A", "C"): 0.85, ("B", "C"): 0.85})
 
     cluster_labels, clusters = cluster_rhymes(matrix, threshold=0.7)
 
     assert len(clusters) == 1
     assert cluster_labels["A"] == cluster_labels["B"] == cluster_labels["C"]
+
+
+def test_average_linkage_rejects_chaining_word():
+    """C is close to B (0.95) but far from A (0.2). Single-linkage would chain C
+    in via B; average-linkage rejects it because its MEAN to {A,B} is 0.575 <
+    0.7. So {A,B} cluster and C stands alone."""
+    words = ["A", "B", "C"]
+    matrix = _matrix(words, {("A", "B"): 0.9, ("A", "C"): 0.2, ("B", "C"): 0.95})
+
+    cluster_labels, clusters = cluster_rhymes(matrix, threshold=0.7)
+
+    assert len(clusters) == 2
+    assert cluster_labels["A"] == cluster_labels["B"]
+    assert cluster_labels["C"] != cluster_labels["A"]

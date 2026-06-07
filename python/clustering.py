@@ -36,15 +36,19 @@ def cluster_label(index):
 
 
 def cluster_rhymes(similarity_matrix, threshold=SIMILARITY_THRESHOLD):
-    """Greedy single-linkage clustering by similarity threshold.
+    """Greedy average-linkage clustering by similarity threshold.
 
-    Single-linkage (Milestone 12): a candidate word joins the current cluster if
-    it scores at or above `threshold` against *any* member already in the
-    cluster — not only against the cluster's first (seed) word. As members are
-    added, later candidates can join through those new members (chaining). This
-    fixes a seed artifact where, e.g., `clip`/`hip` score high against core
-    members of the short-i family but low against the seed word `with`, so the
-    old seed-only test wrongly filed them in a separate cluster.
+    Average-linkage (Milestone 12): a candidate word joins the current cluster
+    only if its *mean* similarity to all members already in the cluster is at or
+    above `threshold`. The cluster is re-swept until no new member joins, so a
+    word can still join via the group as it grows — but, unlike single-linkage,
+    it must stay close to the cluster *as a whole*, not just to one lucky member.
+
+    Why not single-linkage: "join if close to ANY member" lets a cluster *chain*
+    (A pulls in B, B pulls in C, ...) across an assonance-weighted score space
+    until unrelated words merge into one blob (the short-i scheme swallowed the
+    whole verse). Averaging over all members prevents that drift while still
+    catching every genuine member of the scheme.
     """
     words = list(similarity_matrix.keys())
     clusters = {}
@@ -61,8 +65,8 @@ def cluster_rhymes(similarity_matrix, threshold=SIMILARITY_THRESHOLD):
         clusters[current_cluster] = members
         cluster_labels[word] = current_cluster
 
-        # Re-sweep until no new member joins, so a word can link through any
-        # member added earlier in this cluster (single-linkage chaining).
+        # Re-sweep until stable: add any unplaced word whose mean similarity to
+        # the current members clears the threshold.
         added = True
         while added:
             added = False
@@ -71,7 +75,9 @@ def cluster_rhymes(similarity_matrix, threshold=SIMILARITY_THRESHOLD):
                 if other in cluster_labels:
                     continue
 
-                if any(similarity_matrix[m][other] >= threshold for m in members):
+                mean_score = sum(similarity_matrix[m][other] for m in members) / len(members)
+
+                if mean_score >= threshold:
                     members.append(other)
                     cluster_labels[other] = current_cluster
                     added = True
