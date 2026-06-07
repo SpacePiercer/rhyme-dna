@@ -219,6 +219,10 @@ Subgoals:
 syllable. Syllable decomposition is the prerequisite for multi-syllable and multi-word
 schemes (which the M17 stream detector then finds across word boundaries).
 
+**Concrete targets:** the two compound schemes recorded under Milestone 17 ("o i i" and
+"ay uh o er") — e.g. *load the clip* / *both are gripped* (`/oʊ ə i/`) — need per-syllable
+units to be representable at all.
+
 **Depends on:** Milestone 13. Feeds Milestone 17 (stream detection).
 
 ---
@@ -322,6 +326,22 @@ scores only 0.625 (below the 0.7 threshold). A boundary-free stream detector wit
 per-cluster seed should catch it. (By contrast, `shines` — `['aj','n','z']`, the
 `-ines` ending — scores 0.438 against `light`; it is a genuine slant the scorer
 rates lower, a separate question, not a clustering bug.)
+
+**Concrete multi-word targets (found in M12, current verse):** two compound schemes
+(multi-word, multi-syllable rhymes the word-based engine cannot represent — it only
+catches the last word of each phrase). Vowels are the **objective IPA** from the actual
+`english_mfa` alignment; the parenthesised shorthand is the by-ear label.
+
+- **Scheme A** (by ear "o i i") — back/rounded → reduced → close-front anchor, ≈ `/oʊ ə i/`:
+  - ex[plosive with] `ɛ o i ɪ` · [load the clip] `əw a i` · [pistols on hip] `ɪ ə a i` ·
+    [both are gripped] `əw a i` · sup[posed to fit] `ə oː ə i`
+- **Scheme B** (by ear "ay uh o er") — front-mid → reduced → back-rounded → reduced,
+  ≈ `/eɪ ə oʊ ə/`:
+  - [days are over] `e a əw ə` · [save at Kroger] `e a ɒ ə` · [Trader Joe for] `(trader
+    unaligned) əw a` · [change in sofas] `(change unaligned) ɪ …`
+  - *change in sofas* is "less similar but still similar" — drift along the scheme.
+- The unaligned words (*change*, *trader*, partially *sofas*) are an **M18** MFA-limitation
+  catalogue item: they have no usable phonemes, so the detector cannot see them at all.
 
 **Depends on:** Milestone 11 (panphon similarity as the core comparison function).
 
