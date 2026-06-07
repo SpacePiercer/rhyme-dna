@@ -307,6 +307,9 @@ Your job ends at creating/updating the PR and reporting it is ready; then stop a
 let me do the merge. After I confirm a PR is merged, you may continue (e.g. pull
 `main`, rebase, start the next branch).
 
+**Always give me the PR link.** Whenever you create or update a PR, include its full
+URL in your message so I can open it quickly.
+
 ### Pull requests
 
 One PR per milestone. Keep milestones short enough that the PR diff is readable in
