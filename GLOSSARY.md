@@ -87,6 +87,13 @@ This initial version is the one-time bootstrap that rode with the rules introduc
   final sound differs). Rappers use these deliberately.
 - **End rhyme** — rhyme at the end of lines (the classic kind).
 - **Internal rhyme** — rhyming words *inside* a line, not just at the end.
+- **Assonance** — rhyming on the shared **vowel** sounds, regardless of the consonants
+  around them. *clip / hip / tip* rhyme by assonance (they all carry the "ih" vowel). The
+  Milestone 12 scorer is *assonance-first*: vowels drive the score, consonants count less.
+- **Compound rhyme (multi-word / multisyllabic rhyme)** — a rhyme built from several
+  words or syllables spanning word boundaries, e.g. *load the clip* / *both are gripped*
+  (both ≈ `oʊ ə i`). The word-based engine cannot represent these yet (it scores one word
+  at a time); detecting them is the job of M14 (syllables) and M17 (cross-word streams).
 
 ### Tools and data
 
@@ -120,9 +127,23 @@ This initial version is the one-time bootstrap that rode with the rules introduc
   or extra sound. **D** (default) charges a small flat penalty (0.75); **C** caps the
   weighted cost (at 1.0). Chosen by a sweep on the verse — D@0.75 gave the cleanest
   separation of perfect vs slant vs non-rhyme. Raw scores are kept (no rescaling).
+- **Coda discount (`c`)** — a setting from 0 to 1 (Milestone 12) that multiplies every
+  **consonant** cost in the rhyme score; vowel costs are left alone. `c = 1.0` counts
+  consonants fully (pre-M12), `c = 0.0` ignores them entirely (pure assonance). Default
+  **0.3**, so the score is driven mainly by shared vowels. Kept swappable for the M20
+  learned-weights work.
 - **Clustering threshold** — the score two words must reach to be grouped into the same
   rhyme colour/cluster. Kept at `0.7` in Milestone 11, which groups the `-oud` and `-ound`
   families together (they score ~0.81 — genuinely close in sound).
+- **Single-linkage** — a clustering rule where a word joins a group if it is similar
+  enough to **any one** member. Simple, but prone to *chaining*.
+- **Chaining** — the failure where single-linkage walks a cluster member-to-member
+  (A pulls in B, B pulls in C, …) until unrelated words all end up in one blob. With the
+  assonance-first scores this merged the whole verse into a single 79-word cluster.
+- **Average-linkage** — the clustering rule adopted in Milestone 12: a word joins a group
+  only if its **average** similarity to **all** current members clears the threshold. It
+  resists chaining (a word can't ride in on one lucky match), so the short-i scheme forms
+  one clean 17-word family instead of swallowing the verse.
 - **Deep member** — a cluster member whose rhyme unit has at least two sounds. Since
   Milestone 11 the render filter counts only deep members, so a bare vowel like "I" can
   sit inside a rhyme group without causing the whole group to be hidden.
@@ -145,6 +166,9 @@ Branch names before the per-milestone branching workflow are marked *(early hist
 
 | Date | Branch | Area | Decision | Effect |
 |---|---|---|---|---|
+| 2026-06-07 | `m12-assonance-vowel-weighted` | Rhyme scorer | Add **coda-discount** setting `c` (default **0.3**): consonant costs (insert/delete a consonant, or substitute one consonant for another) ×`c`; vowel costs and vowel↔consonant substitutions stay full | Score is assonance-first: short-i scheme merges (`it/tip` 0.706) while wrong-vowel `up` stays out (`it/up` 0.581); coda-split clusters gone |
+| 2026-06-07 | `m12-assonance-vowel-weighted` | Clustering | Switch `cluster_rhymes` to **average-linkage** (join if mean similarity to all members ≥ threshold); **single-linkage rejected** | Single-linkage chained the assonance scores into one 79-word blob; average-linkage gives one clean 17-word short-i family (11/11 targets) |
+| 2026-06-07 | `m12-assonance-vowel-weighted` | Clustering (deferred) | Prototype a **windowed/drift linkage** (compare to last *n* members) and **defer to M17** | On this verse it fragmented the scheme (7/11) without removing extras; kept in `python/probes/` as an M17 exploration |
 | 2026-06-04 | `m11-panphon-similarity` | Rhyme scorer | Score rhyme units with panphon **weighted feature edit distance** (substitution = weighted feature difference; insert/delete = bounded penalty); method **D@0.75** default, **C@1.0** selectable; raw scores kept | Insertion slant rhymes score correctly: `crowd`/`mound` 0.000 → **0.812**; perfect = 1.0, non-rhymes ≤ 0.44 |
 | 2026-06-04 | `m11-panphon-similarity` | Clustering threshold | Keep threshold at **0.7** (Option B) instead of raising it | `-oud` and `-ound` merge into one "ow-ending" family (they score ~0.81); finer grouping deferred to M12/M13 |
 | 2026-06-04 | `m11-panphon-similarity` | Render filter | `filter_clusters` counts **deep members** (≥2 sounds), not the shallowest member | A bare vowel ("I") can join a group without hiding it; the `-ight` family renders with "I" included |
