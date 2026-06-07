@@ -583,6 +583,72 @@ Rendered clusters:
 **Note:** the feature weights are panphon's defaults; learning them from human
 rhyme judgments is Milestone 20.
 
+### Milestone 12 — Assonance-First (Vowel-Weighted) Similarity
+
+**What was built:**
+
+- `CODA_DISCOUNT` setting (`c`, default **0.3**) added to `similarity_engine.py`.
+  In `rhyme_unit_similarity`, every consonant cost in the panphon edit distance is
+  multiplied by `c`; vowel costs are untouched. The discount applies to a consonant
+  being inserted, deleted, or substituted **for another consonant**. A substitution
+  that involves a vowel — including a vowel-vs-consonant alignment — keeps full cost.
+  `c = 1.0` reproduces pre-M12 behaviour; `c = 0.0` is pure assonance.
+- Vowel/consonant are told apart from panphon's `syl` feature (`_SYL_IDX`,
+  `_is_vowel_vector`). `c` is a parameter (`coda_discount=`) and a module constant,
+  swap-ready for the M20 learned-weights milestone.
+- `cluster_rhymes` (`clustering.py`) switched from greedy seed-only to greedy
+  **average-linkage**: a word joins only if its *mean* similarity to all current
+  members clears the threshold (re-swept until stable).
+- New `python/probes/` folder for exploratory diagnostics (not unit tests);
+  `probe_clusters.py` prints scheme membership across `c` values and clustering
+  methods, including an experimental windowed/drift linkage kept for M17.
+- Tests: coda-discount behaviour + average-linkage merge/chaining-rejection
+  (`python/tests/`, 42 passing). Notebook re-run end-to-end.
+
+**Key decisions (and why):**
+
+- **`c = 0.3`** chosen per the roadmap sweep, confirmed on real alignment data:
+  the wrong-vowel word *up* stays out (`it/up = 0.581`, below the 0.7 cut) while the
+  short-i scheme merges (`it/tip = 0.706`, `clip/hip = 1.000`); function words score
+  near zero (`it/the = 0.137`, `it/and = 0.025`).
+- **Vowel↔consonant substitutions stay at full cost.** Measured costs: vowel↔vowel
+  `ɪ/ʌ = 1.25`, consonant↔consonant `p/t = 1.125` (×c when discounted), but
+  vowel↔consonant `ɪ/t = 8.75` — larger than inserting/deleting a whole sound (7.25).
+  So the aligner always routes around it with a cheap consonant insert/delete; the
+  mismatched pairing never needs special-casing.
+- **Average-linkage, not single-linkage.** Single-linkage ("join if close to ANY
+  member") *chained* the assonance-weighted scores into one 79-word blob — the
+  short-i scheme swallowed the whole verse. The pairwise scores were fine; the
+  clustering was the failure. Average-linkage keeps every member close to the group
+  as a whole, giving a clean 17-word cluster (11/11 target words).
+- **Windowed/drift linkage deferred to M17.** A user proposal to compare a word to
+  only its last *n* cluster members (to allow a scheme to drift along the verse) was
+  prototyped: on this verse it *fragments* the scheme (7/11) without removing the
+  incidentals, so it underperforms whole-cluster averaging here. It is a
+  position-aware idea that belongs with M17's boundary-free detector (and pairs
+  naturally with M16's colour-gradient view rather than hard same-colour membership).
+- **The extra members are genuine matches, not noise.** At `c = 0.3` the cluster also
+  contains *explosive, give, in, is, still, think*. These are **correct** assonance hits
+  — they really do carry the short-i vowel (e.g. *explosive* / *give* on the "-ive"
+  ending), which is exactly what the scorer is built to detect. They are not "incidental"
+  and must not be treated as errors. Two later milestones *refine* them rather than
+  remove them: M13 (stress) **down-weights** members whose shared vowel is *unstressed*
+  (e.g. *explosive* → "-ive"), making them weaker — not dropped; and M14 (syllables) /
+  M17 (cross-word streams) will reveal that some are tails of larger multi-word
+  *compound* schemes the word-based engine cannot yet represent.
+
+**Before/after (real data, short-i verse):**
+
+```
+short-i scheme cluster
+  c = 1.0 (consonants count fully): best cluster 6 words, split by coda (-ip/-it/-id̪)
+  c = 0.3 (assonance-first):        17 words, 11/11 target words in one family
+
+clustering at c = 0.3
+  single-linkage : 79-word blob (whole verse)   -> rejected
+  average-linkage: 17 words = 11/11 target + 6 more genuine short-i matches -> shipped
+```
+
 ---
 
 ## Open questions / next steps
