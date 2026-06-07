@@ -167,6 +167,18 @@ Subgoals:
   short-i scheme: *with / clip / hip / gripped / width / tip / slit / it / chips / fit /
   ultimate*). Pick the value that merges the target group while still excluding
   wrong-vowel words (e.g. *up*).
+- **Chosen target (from the sweep): `c ≈ 0.3`.** Keeps the wrong-vowel *up* out with a
+  safety margin (*it/up* = 0.58, *tip/up* = 0.63 — both below the 0.7 cut). A tighter
+  setting (`c = 0.15`) merged the group too but left *up* at 0.67, uncomfortably close:
+  panphon's default weights compress the vowel space (any two vowels score ~0.89–0.97;
+  *ɐ* vs *ɪ* = 0.90, differing only in the *high* and *tense* features), so vowel
+  contrasts are weak and *up* is easy to pull in.
+- **Clustering caveat to resolve during implementation:** at `c = 0.3`, *clip*/*hip*
+  score 0.83+ against the core group (*clip/it* = 0.83, *clip/tip* = 0.88) yet only 0.67
+  against the seed word *with*, so today's greedy *single-link-from-seed* clustering
+  files them in a sibling cluster. This is a clustering-seed artifact, not a scoring
+  failure — fix with proper single-linkage (compare to any member; small change) or
+  defer to M17's seedless detector.
 - Keep `c` a swappable parameter (not hard-coded into the formula) so Milestone 20
   (learned weights) can replace it without code changes.
 
