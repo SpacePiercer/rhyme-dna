@@ -36,7 +36,16 @@ def cluster_label(index):
 
 
 def cluster_rhymes(similarity_matrix, threshold=SIMILARITY_THRESHOLD):
+    """Greedy single-linkage clustering by similarity threshold.
 
+    Single-linkage (Milestone 12): a candidate word joins the current cluster if
+    it scores at or above `threshold` against *any* member already in the
+    cluster — not only against the cluster's first (seed) word. As members are
+    added, later candidates can join through those new members (chaining). This
+    fixes a seed artifact where, e.g., `clip`/`hip` score high against core
+    members of the short-i family but low against the seed word `with`, so the
+    old seed-only test wrongly filed them in a separate cluster.
+    """
     words = list(similarity_matrix.keys())
     clusters = {}
     cluster_labels = {}
@@ -48,19 +57,24 @@ def cluster_rhymes(similarity_matrix, threshold=SIMILARITY_THRESHOLD):
         if word in cluster_labels:
             continue
 
-        clusters[current_cluster] = [word]
+        members = [word]
+        clusters[current_cluster] = members
         cluster_labels[word] = current_cluster
 
-        for other in words:
+        # Re-sweep until no new member joins, so a word can link through any
+        # member added earlier in this cluster (single-linkage chaining).
+        added = True
+        while added:
+            added = False
+            for other in words:
 
-            if other == word:
-                continue
+                if other in cluster_labels:
+                    continue
 
-            score = similarity_matrix[word][other]
-
-            if score >= threshold and other not in cluster_labels:
-                clusters[current_cluster].append(other)
-                cluster_labels[other] = current_cluster
+                if any(similarity_matrix[m][other] >= threshold for m in members):
+                    members.append(other)
+                    cluster_labels[other] = current_cluster
+                    added = True
 
         cluster_index += 1
         current_cluster = cluster_label(cluster_index)

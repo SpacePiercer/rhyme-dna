@@ -14,6 +14,16 @@ _FM = _DIST.fm
 # feature weights (~7.25). Used as the normaliser and as the cap ceiling.
 SEG_COST = sum(_FM.weights)
 
+# Index of panphon's "syllabic" feature inside a numeric feature vector.
+# A value of +1 marks a vowel; -1 marks a consonant. Used by the coda-discount
+# logic to tell vowels and consonants apart.
+_SYL_IDX = _FM.names.index("syl")
+
+
+def _is_vowel_vector(vec):
+    """True if a panphon numeric feature vector is a vowel ([+syllabic])."""
+    return vec[_SYL_IDX] > 0
+
 
 # ---------------------------------------------------------------------------
 # Scoring configuration  (swap-ready for the M17 learned-weights milestone)
@@ -25,6 +35,17 @@ SEG_COST = sum(_FM.weights)
 SIMILARITY_METHOD = "D"
 SIMILARITY_PENALTY = 0.75   # used when SIMILARITY_METHOD == "D"
 SIMILARITY_CAP = 1.0        # used when SIMILARITY_METHOD == "C"
+
+# Coda-discount knob (Milestone 12 — assonance-first scoring).
+# Every consonant cost in the rhyme-unit edit distance (a consonant being
+# inserted, deleted, or substituted for another consonant) is multiplied by
+# this factor; vowel costs are left untouched. This makes the rhyme score
+# driven mainly by shared vowels (assonance), the way fast rap rhyme is heard.
+#   c = 1.0 -> consonants count fully          (pre-M12 behaviour)
+#   c = 0.0 -> consonants ignored entirely     (pure assonance)
+# Chosen by a sweep on the short-i verse; kept a swappable parameter so the
+# M20 learned-weights milestone can replace it without code changes.
+CODA_DISCOUNT = 0.3
 
 
 def normalize_phoneme(p):
@@ -81,7 +102,7 @@ def _insert_delete_cost(method, value):
     raise ValueError(f"Unknown similarity method: {method!r} (use 'D' or 'C')")
 
 
-def rhyme_unit_similarity(unitA, unitB, method=None, value=None):
+def rhyme_unit_similarity(unitA, unitB, method=None, value=None, coda_discount=None):
     """Score how strongly two rhyme units rhyme, in [0.0, 1.0].
 
     Uses panphon's weighted feature edit distance: a substitution costs
@@ -90,10 +111,18 @@ def rhyme_unit_similarity(unitA, unitB, method=None, value=None):
     "C" = capped weighted cost). The total is normalised by the longer unit's
     sound count and subtracted from 1 (floored at 0).
 
+    Coda discount (Milestone 12): every consonant cost is multiplied by
+    `coda_discount` so the score is driven mainly by shared vowels. The discount
+    applies to a consonant being inserted, deleted, or substituted for another
+    consonant. A substitution that involves a vowel — including a mismatched
+    vowel-vs-consonant alignment — keeps its full cost; that mismatch is so
+    expensive the aligner routes around it with a cheap consonant insert/delete.
+
     The rhyme unit's tokens are joined into one IPA string for panphon, which
     aligns and scores them; diphthongs written "aw"/"aj" are left as panphon's
-    default two-segment split (a separate "diphthong as one" representation is
-    deferred to the weight-learning milestone).
+    default two-segment split (the glide half "w"/"j" counts as a consonant, so
+    a mismatch on it is discounted — the separate "diphthong as one"
+    representation is deferred to the weight-learning milestone).
 
     Parameters
     ----------
@@ -104,19 +133,36 @@ def rhyme_unit_similarity(unitA, unitB, method=None, value=None):
     value : float or None
         Penalty (method "D") or cap (method "C"); defaults to the module
         config constant for the chosen method.
+    coda_discount : float or None
+        Factor applied to consonant costs; defaults to module CODA_DISCOUNT.
+        1.0 reproduces the pre-M12 (consonants-count-fully) behaviour.
     """
     method = method or SIMILARITY_METHOD
+    c = CODA_DISCOUNT if coda_discount is None else coda_discount
     a = "".join(normalize_phoneme(p) for p in unitA)
     b = "".join(normalize_phoneme(p) for p in unitB)
     va = _FM.word_to_vector_list(a, numeric=True)
     vb = _FM.word_to_vector_list(b, numeric=True)
     if not va or not vb:
         return 0.0
-    cost_fn = _insert_delete_cost(method, value)
+
+    base_id_cost = _insert_delete_cost(method, value)
+
+    def id_cost(vec):
+        # Inserting/deleting a consonant is discounted by c; a vowel is full.
+        cost = base_id_cost(vec)
+        return cost if _is_vowel_vector(vec) else cost * c
+
+    def sub_cost(v1, v2):
+        # Consonant<->consonant substitutions are discounted by c; any
+        # substitution touching a vowel (incl. vowel<->consonant) is full cost.
+        cost = _DIST.weighted_substitution_cost(v1, v2)
+        if _is_vowel_vector(v1) or _is_vowel_vector(v2):
+            return cost
+        return cost * c
+
     maxlen = max(len(va), len(vb))
-    distance = _DIST.min_edit_distance(
-        cost_fn, cost_fn, _DIST.weighted_substitution_cost, [[]], va, vb
-    )
+    distance = _DIST.min_edit_distance(id_cost, id_cost, sub_cost, [[]], va, vb)
     return max(0.0, 1.0 - distance / maxlen)
 
 

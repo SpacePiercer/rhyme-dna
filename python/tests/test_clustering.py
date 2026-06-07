@@ -44,3 +44,25 @@ def test_more_than_26_clusters_all_alphabetic():
     # The 27th cluster is 'AA', not '['
     assert "AA" in clusters
     assert "[" not in clusters
+
+
+# --- single-linkage chaining (Milestone 12) ---------------------------------
+
+def test_single_linkage_chains_through_members():
+    """B does not rhyme with the seed A (0.5) but does with C (0.9), and C
+    rhymes with A (0.9). Single-linkage must pull all three into one cluster by
+    linking B through C — the old seed-only test would have split B off."""
+    words = ["A", "C", "B"]
+    scores = {("A", "C"): 0.9, ("C", "B"): 0.9, ("A", "B"): 0.5}
+
+    def s(x, y):
+        if x == y:
+            return 1.0
+        return scores.get((x, y), scores.get((y, x), 0.0))
+
+    matrix = {x: {y: s(x, y) for y in words} for x in words}
+
+    cluster_labels, clusters = cluster_rhymes(matrix, threshold=0.7)
+
+    assert len(clusters) == 1
+    assert cluster_labels["A"] == cluster_labels["B"] == cluster_labels["C"]
