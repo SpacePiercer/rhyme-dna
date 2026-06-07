@@ -36,7 +36,20 @@ def cluster_label(index):
 
 
 def cluster_rhymes(similarity_matrix, threshold=SIMILARITY_THRESHOLD):
+    """Greedy average-linkage clustering by similarity threshold.
 
+    Average-linkage (Milestone 12): a candidate word joins the current cluster
+    only if its *mean* similarity to all members already in the cluster is at or
+    above `threshold`. The cluster is re-swept until no new member joins, so a
+    word can still join via the group as it grows — but, unlike single-linkage,
+    it must stay close to the cluster *as a whole*, not just to one lucky member.
+
+    Why not single-linkage: "join if close to ANY member" lets a cluster *chain*
+    (A pulls in B, B pulls in C, ...) across an assonance-weighted score space
+    until unrelated words merge into one blob (the short-i scheme swallowed the
+    whole verse). Averaging over all members prevents that drift while still
+    catching every genuine member of the scheme.
+    """
     words = list(similarity_matrix.keys())
     clusters = {}
     cluster_labels = {}
@@ -48,19 +61,26 @@ def cluster_rhymes(similarity_matrix, threshold=SIMILARITY_THRESHOLD):
         if word in cluster_labels:
             continue
 
-        clusters[current_cluster] = [word]
+        members = [word]
+        clusters[current_cluster] = members
         cluster_labels[word] = current_cluster
 
-        for other in words:
+        # Re-sweep until stable: add any unplaced word whose mean similarity to
+        # the current members clears the threshold.
+        added = True
+        while added:
+            added = False
+            for other in words:
 
-            if other == word:
-                continue
+                if other in cluster_labels:
+                    continue
 
-            score = similarity_matrix[word][other]
+                mean_score = sum(similarity_matrix[m][other] for m in members) / len(members)
 
-            if score >= threshold and other not in cluster_labels:
-                clusters[current_cluster].append(other)
-                cluster_labels[other] = current_cluster
+                if mean_score >= threshold:
+                    members.append(other)
+                    cluster_labels[other] = current_cluster
+                    added = True
 
         cluster_index += 1
         current_cluster = cluster_label(cluster_index)
