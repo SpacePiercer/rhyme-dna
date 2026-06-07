@@ -194,9 +194,17 @@ that changes the meaning of the output. Surface the choice, explain the options 
 language with examples, and wait for my approval before implementing.
 
 **End every message with a "Decisions" list** — a short, numbered list of the decisions
-you have reached or are proposing, each marked as either already-agreed or
-needs-my-sign-off. If a message genuinely involved no decisions, write
-"Decisions: none this message."
+you have reached or are proposing. **Format every entry exactly the same way:**
+
+```
+N. (status) description of the decision
+```
+
+where `(status)` is a bracketed tag at the very start of the entry indicating where the
+decision stands — use `(agreed)` for one already signed off and `(needs your sign-off)`
+for one awaiting my approval (or another short bracketed phrase if a different status
+fits better). The bracket always comes first, the description follows. If a message
+genuinely involved no decisions, write "Decisions: none this message."
 
 **Why this exists:** I steer the direction of this project. Seeing every pending decision
 in one place, in plain terms, is how I stay in control and catch wrong turns early.
@@ -289,9 +297,18 @@ and no commit has been made yet.
 ### GitHub CLI
 
 Always use the `gh` CLI for all GitHub interactions — creating PRs, viewing PRs,
-checking CI status, merging, listing issues, etc. Never use the GitHub web UI
+checking CI status, listing issues, etc. Never use the GitHub web UI
 instructions or raw `git push` + manual PR creation. The repo is
 `SpacePiercer/rhyme-dna`.
+
+**Never merge a PR.** I (the user) always merge PRs manually. Do not run
+`gh pr merge`, any other merge command, or otherwise merge a branch into `main`.
+Your job ends at creating/updating the PR and reporting it is ready; then stop and
+let me do the merge. After I confirm a PR is merged, you may continue (e.g. pull
+`main`, rebase, start the next branch).
+
+**Always give me the PR link.** Whenever you create or update a PR, include its full
+URL in your message so I can open it quickly.
 
 ### Pull requests
 
