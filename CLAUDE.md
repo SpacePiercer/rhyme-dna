@@ -297,9 +297,15 @@ and no commit has been made yet.
 ### GitHub CLI
 
 Always use the `gh` CLI for all GitHub interactions — creating PRs, viewing PRs,
-checking CI status, merging, listing issues, etc. Never use the GitHub web UI
+checking CI status, listing issues, etc. Never use the GitHub web UI
 instructions or raw `git push` + manual PR creation. The repo is
 `SpacePiercer/rhyme-dna`.
+
+**Never merge a PR.** I (the user) always merge PRs manually. Do not run
+`gh pr merge`, any other merge command, or otherwise merge a branch into `main`.
+Your job ends at creating/updating the PR and reporting it is ready; then stop and
+let me do the merge. After I confirm a PR is merged, you may continue (e.g. pull
+`main`, rebase, start the next branch).
 
 ### Pull requests
 
