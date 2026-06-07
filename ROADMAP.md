@@ -148,53 +148,33 @@ throwaway work.
 
 **Decision detail:** see `DECISIONS.md` → "Milestone 11 — Replace Similarity Engine with panphon".
 
+### [x] Milestone 12 — Assonance-First (Vowel-Weighted) Similarity
+
+**What was done:**
+- Added the **coda-discount setting** `c` (default 0.3) to `rhyme_unit_similarity`:
+  consonant costs (insert/delete a consonant, or substitute one consonant for another)
+  are multiplied by `c`; vowel costs and vowel↔consonant substitutions stay full cost.
+  `c = 1.0` reproduces pre-M12 behaviour; kept a swappable parameter for M20.
+- `cluster_rhymes` switched to **average-linkage** (a word joins only if its mean
+  similarity to all current members clears the threshold).
+- New `python/probes/` diagnostics folder (`probe_clusters.py`, incl. an experimental
+  windowed/drift linkage kept for M17).
+- Tests: coda-discount + average-linkage merge/chaining-rejection (42 passing);
+  notebook re-run end-to-end.
+
+**Result (short-i verse, `c = 0.3`):** the scheme merges into one 17-word family
+(11/11 of *with/clip/hip/gripped/width/tip/slit/it/chips/fit/ultimate*), plus 6 more
+words that genuinely share the short-i vowel (*explosive, give, in, is, still, think*) —
+correct matches, not noise. Refining them is later work: M13 (stress) down-weights ones
+whose vowel is unstressed; M14/M17 surface the multi-word compound schemes some belong
+to. Single-linkage was tried first but chained the whole verse into one 79-word blob, so
+average-linkage was adopted.
+
+**Decision detail:** see `DECISIONS.md` → "Milestone 12 — Assonance-First (Vowel-Weighted) Similarity".
+
 ---
 
 ## Upcoming
-
-### [ ] Milestone 12 — Assonance-First (Vowel-Weighted) Similarity
-
-**Goal:** make the rhyme score driven primarily by shared **vowels** (assonance),
-with consonants — especially the coda (the consonant[s] after the vowel) — counting
-for less. This reflects how fast rap rhyme is actually heard: the vowel scheme carries
-the rhyme; the final consonants vary freely.
-
-Subgoals:
-- Introduce a single **coda-discount knob** `c` into `rhyme_unit_similarity`: consonant
-  substitutions and consonant insert/delete costs are multiplied by `c` (vowel costs
-  unchanged). `c = 1.0` = today's behaviour; `c = 0.0` = pure assonance (codas ignored).
-- Choose `c` by a **sweep validated against an ear-grouped target** (the verse's
-  short-i scheme: *with / clip / hip / gripped / width / tip / slit / it / chips / fit /
-  ultimate*). Pick the value that merges the target group while still excluding
-  wrong-vowel words (e.g. *up*).
-- **Chosen target (from the sweep): `c ≈ 0.3`.** Keeps the wrong-vowel *up* out with a
-  safety margin (*it/up* = 0.58, *tip/up* = 0.63 — both below the 0.7 cut). A tighter
-  setting (`c = 0.15`) merged the group too but left *up* at 0.67, uncomfortably close:
-  panphon's default weights compress the vowel space (any two vowels score ~0.89–0.97;
-  *ɐ* vs *ɪ* = 0.90, differing only in the *high* and *tense* features), so vowel
-  contrasts are weak and *up* is easy to pull in.
-- **Clustering caveat to resolve during implementation:** at `c = 0.3`, *clip*/*hip*
-  score 0.83+ against the core group (*clip/it* = 0.83, *clip/tip* = 0.88) yet only 0.67
-  against the seed word *with*, so today's greedy *single-link-from-seed* clustering
-  files them in a sibling cluster. This is a clustering-seed artifact, not a scoring
-  failure — fix with proper single-linkage (compare to any member; small change) or
-  defer to M17's seedless detector.
-- Keep `c` a swappable parameter (not hard-coded into the formula) so Milestone 20
-  (learned weights) can replace it without code changes.
-
-**Why this matters:** today the engine splits this one audible scheme into three
-clusters by coda (`-ip` / `-it` / `-id̪`). Vowel-weighting merges them into the single
-"short-i" family the listener hears.
-
-**Known boundary (hand off to M13/M17):** vowel-weighting is *vowel-greedy* — it also
-pulls in other words that happen to share the same last vowel (*is, still, give, think,
-explosive*). Distinguishing the *intentional* scheme from *incidental* shared vowels
-needs the stress layer (M13) and/or the position-aware stream detector (M17); it is out
-of scope here.
-
-**Depends on:** Milestone 11 (panphon scorer in place).
-
----
 
 ### [ ] Milestone 13 — Stress-Aware Scoring
 
