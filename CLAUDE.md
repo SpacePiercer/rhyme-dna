@@ -132,6 +132,11 @@ I am not a linguist and not a domain expert. Write for a general audience:
   precise definition.
 - Never assume I know jargon, abbreviations, or symbols (IPA characters, feature
   names, etc.) — spell them out the first time they come up.
+- **Checkmark exemption:** terms marked with a leading `✓` in `GLOSSARY.md` are ones
+  I have explicitly told you I understand. Do **not** re-explain a ✓ term inline (no
+  bracketed definition) — treat it as known. Unmarked terms still get the bracket
+  treatment above. When I tell you I understand a term, add the `✓` to its glossary
+  entry (on the appropriate `glossary`/`docs` branch) so the exemption is recorded.
 
 **Why this exists:** I am driving the linguistic direction of this project without a
 linguistics background. Clear, jargon-free explanations are how I verify the work is

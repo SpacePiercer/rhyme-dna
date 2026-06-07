@@ -22,8 +22,16 @@ This initial version is the one-time bootstrap that rode with the rules introduc
 
 ## Part A — Dictionary of terms
 
+> **✓ legend:** a leading `✓` marks a term the user has explicitly said he
+> understands. Per Rule 8, ✓ terms are **not** re-explained inline (no bracketed
+> definition); unmarked terms still get explained the first time they appear.
+
 ### Sounds and spelling
 
+- ✓ **Vowel** — an open speech sound made with the mouth unobstructed, the kind a
+  syllable is built around: the *a* in *cat*, the *ee* in *see*.
+- ✓ **Consonant** — a speech sound made by blocking or restricting the airflow, e.g.
+  *t*, *p*, *s*, *n*. Everything that isn't a vowel.
 - **Phoneme** — the smallest unit of sound in speech that can change meaning.
   The `t` in *cat* is one phoneme; swap it for `p` and you get *cap*.
 - **Grapheme** — a written letter (or group of letters) on the page, as opposed to the
