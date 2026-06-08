@@ -17,6 +17,8 @@ The next chat always picks up the first `[ ]` milestone.
 - `[x]` Complete — documented in `DECISIONS.md`
 - `[~]` In progress — current chat
 - `[ ]` Not started
+- `[-]` Deferred / dropped — kept for reference; not on the active path (numbers stay
+  stable so existing cross-references don't break)
 
 ---
 
@@ -208,22 +210,33 @@ vowel to the end of the word. This lets a long word participate in a scheme thro
 *each* of its syllables (e.g. *ultimate* → ul-ti-mate matching across *utmost · with ·
 it*).
 
+**This is the "whole word" milestone.** It is *word-boundary-respecting* — every
+syllable of every word becomes comparable, but each word is still scored as a word.
+This delivers whole-word, multi-syllable rhyme **without** the boundary-free phoneme
+stream of M17. The only thing M14 cannot do that M17 could is span *across* word
+boundaries (compound rhymes like *load the clip* / *both are gripped*); that capability
+is deferred with M17 and is not required to get whole-word analysis.
+
 Subgoals:
 - Add a **syllabifier** — a standard algorithm that chops a phoneme stream into
   syllables by the rise-and-fall of sonority (how open/loud each sound is).
-- Produce a per-syllable representation; compare words (or word-spans) syllable-by-
-  syllable rather than as one tail blob.
+- Produce a per-syllable representation; compare words syllable-by-syllable rather than
+  as one tail blob (a word can now match on *any* of its syllables, not just the tail).
 - Keep the M12/M13 vowel- and stress-weighting working on the new per-syllable units.
 
 **Why this matters:** the current "last-vowel-to-end" rhyme unit can only see one
-syllable. Syllable decomposition is the prerequisite for multi-syllable and multi-word
-schemes (which the M17 stream detector then finds across word boundaries).
+syllable. Whole-word syllable decomposition lets every syllable of a word participate —
+e.g. *ultimate*'s "ul" and "ti" can rhyme elsewhere, not just its final "-it/-ət" tail
+(which is all the engine sees today).
 
-**Concrete targets:** the two compound schemes recorded under Milestone 17 ("o i i" and
-"ay uh o er") — e.g. *load the clip* / *both are gripped* (`/oʊ ə i/`) — need per-syllable
-units to be representable at all.
+**Before/after (real data, current verse):**
+```
+"ultimate"  (english_mfa: ˈʌl.tə.mət)
+- Now (tail-only):  rhyme unit ≈ [ə, t]  → only the "-it/-ət" sound clusters
+- After M14:        ul · ti · mate       → all three syllables become matchable
+```
 
-**Depends on:** Milestone 13. Feeds Milestone 17 (stream detection).
+**Depends on:** Milestone 13.
 
 ---
 
@@ -290,7 +303,20 @@ full panphon scorer is stable.
 
 ---
 
-### [ ] Milestone 17 — Global Phoneme-Stream Rhyme Detection
+### [-] Milestone 17 — Global Phoneme-Stream Rhyme Detection (DEFERRED / OPTIONAL)
+
+> **Status (2026-06-07): deferred and optional.** M14 delivers whole-word,
+> multi-syllable rhyme *within* word boundaries, which covers the analysis we want.
+> M17's **only** irreplaceable capability is detecting rhymes that span *across* word
+> boundaries (compound rhymes like *load the clip* / *both are gripped*). Because we are
+> keeping the word-based engine, the tail-walk is **not** being retired and M13/M14 are
+> the permanent engine, not scaffolding. Pick M17 up later *only* if cross-word compound
+> detection becomes worth the boundary-free rewrite. The two orphaned items it carried —
+> the `ignites` false-negative (a clustering question, possibly already changed by M12's
+> average-linkage) and the deferred windowed/drift linkage — need a new home if M17 stays
+> shelved.
+>
+> The rest of this section is kept verbatim as a design reference for if/when M17 is revived.
 
 **Goal:** replace the word-ending tail-walk with a boundary-free, stream-based
 pattern detector that finds repeated or similar phoneme subsequences anywhere in
@@ -340,55 +366,69 @@ catches the last word of each phrase). Vowels are the **objective IPA** from the
   - [days are over] `e a əw ə` · [save at Kroger] `e a ɒ ə` · [Trader Joe for] `(trader
     unaligned) əw a` · [change in sofas] `(change unaligned) ɪ …`
   - *change in sofas* is "less similar but still similar" — drift along the scheme.
-- The unaligned words (*change*, *trader*, partially *sofas*) are an **M18** MFA-limitation
-  catalogue item: they have no usable phonemes, so the detector cannot see them at all.
+- The unaligned words (*change*, *trader*, partially *sofas*) are catalogued in
+  `MFA_FAILURES.md`: they have no usable phonemes, so the detector cannot see them at all.
 
 **Depends on:** Milestone 11 (panphon similarity as the core comparison function).
 
 ---
 
-### [ ] Milestone 18 — MFA Limitation Evaluation
+### [-] Milestone 18 — MFA Limitation Evaluation (DROPPED — now a living catalogue)
 
-**Goal:** stress-test the pipeline on real rap audio and identify where MFA fails.
-
-Subgoals:
-- Align a real rap verse (suggest: Eminem — 3 a.m., or a verse from Relapse)
-- Compare MFA-derived phonemes against expected pronunciations
-- Identify failure categories: fast delivery, non-standard pronunciation, ad-libs,
-  overlapping sounds
-- Document failure rate and its effect on rhyme detection accuracy
-- Decision point: is MFA sufficient, or is a hybrid acoustic approach needed?
-
-**Concrete failure example (found in M11):** MFA aligns `kite` as
-`['c', 'iː', 'ʈ', 'ə']` (a palatal `c`, long `iː`, retroflex `ʈ`, and a stray
-trailing schwa) instead of /k aɪ t/. Its rhyme unit becomes the junk `['ə']`, so it
-never clusters with the `-ight` family — a clear mis-alignment to catalogue here.
-
-**Note:** do not attempt to fix MFA failures yet — this milestone is evaluation only.
+> **Status (2026-06-07): dropped as a milestone.** This was evaluation-only, and we are
+> already running real adlib verses and spotting MFA failures as they happen. Rather than
+> a one-off milestone, MFA failures are now collected in a **living catalogue**:
+> `MFA_FAILURES.md`. It grows whenever a failure is hit, and — for free — it is fed by the
+> M19 screenshot-label workflow: any verse where a human rhyme-breakdown video disagrees
+> with our pipeline output is exactly an MFA/scorer failure to log there.
+>
+> Holds the current verse's unaligned/mis-aligned words; rows are dropped and replaced as
+> the pipeline's verse changes.
 
 ---
 
 ### [ ] Milestone 19 — Rhyme-Judgment Dataset & Score Logging
 
-**Goal:** start building the labelled data the weight-learning milestone will need, and
-make the pipeline log every pair it scores — so a training set accumulates passively
-while other work continues.
+**Goal:** start building the labelled data the weight-learning milestone (M20) will need,
+and make the pipeline log every pair it scores — so a training set accumulates passively
+while other work continues. Split into two parts so logging starts immediately and
+labelling happens incrementally, not in one batch at the end.
 
-Subgoals:
+#### 19a — Passive logging (start NOW, ahead of the milestone)
+
 - Add lightweight logging: every scored pair (`word A`, `word B`, rhyme units, raw
-  score, method) appended to a versioned dataset file (`.jsonl` / `.csv`)
-- Build a tiny rating surface (notebook cell or CLI) to attach a human label to a pair —
-  either a 0–1 rating or, preferably, a *ranking* ("A rhymes more than B")
+  score, method, config) appended to a versioned dataset file (`.jsonl`)
 - Define the dataset schema once, stable and versioned, so future training reads it
   directly
-- Seed it with the current verse's pairs, hand-labelled by ear
+- This runs from now on as the pipeline executes — no labels yet, just the raw scored
+  pairs accumulating.
+
+#### 19b — Incremental human labelling (ongoing, not one batch)
+
+- **Do not label all pairs at the end.** Most pairs are obvious non-rhymes
+  (`the / mound = 0.0`) and need no human label. Label only the **interesting slice**:
+  borderline scores near the threshold, and cases where the engine disagrees with the
+  ear. Label **per-milestone-cycle**, not in one final pass.
+- M20's loss is *ranking/contrastive* (perfect > slant > non), so we mostly need
+  *orderings* and a handful of anchored examples — not a number on every pair.
+- **Screenshot ingestion (expert labels, for free):** rhyme-breakdown videos (e.g.
+  colour-coded Eminem verses) hand us expert **cluster memberships** on real rap audio.
+  Workflow: the user sends a screenshot → it is read out and recorded as labelled cluster
+  memberships for a verse we have **already aligned** → any disagreement with our pipeline
+  output drops into `MFA_FAILURES.md` (this is the old M18 evaluation, generated
+  automatically).
+  - Record the **source video** per label (slant grouping is subjective; provenance lets
+    us weight/dedupe).
+  - A screenshot is only usable for a verse we have run through MFA (the labels need
+    feature vectors to attach to).
+  - These memberships are the same "do two words share a label?" signal as the
+    pulled-forward pairwise-identity evaluation (see "Dissolved milestones" below).
 
 **Why this matters:** there is no target to learn from today. Collecting judgments is
-the real unlock and the slowest part — starting early means data is ready when the
-fitting milestone arrives. (Passive score-logging can begin informally as soon as the
-M11 scorer exists, even before this milestone is formally reached.)
+the real unlock and the slowest part — starting logging now means data is ready when the
+fitting milestone (M20) arrives.
 
-**Depends on:** Milestone 11 (panphon scorer producing scores to log).
+**Depends on:** Milestone 11 (panphon scorer producing scores to log). 19a starts now.
 
 ---
 
@@ -439,23 +479,25 @@ Subgoals:
 
 ---
 
-### [ ] Milestone 22 — Structural Refactor for Modularity
+### [-] Milestone 22 — Structural Refactor for Modularity (DROPPED — dissolved)
 
-**Goal:** separate the pipeline into clean modules ready for API wrapping.
-
-Subgoals:
-- Define module boundaries:
-  - `alignment/` — MFA interface, TextGrid parsing, `word_to_phonemes` builder
-  - `rhyme_engine/` — extraction, similarity, clustering
-  - `scoring/` — complexity scoring
-  - `visualisation/` — HTML generation
-- Add a thin CLI entry point (`python -m versedna analyse input.txt output.TextGrid`)
-- Write module-level docstrings and a `README.md` for each module
-- Notebook becomes a demo/testing surface only — no pipeline logic inside cells
-- **Upgrade evaluation to pairwise cluster identity** — instead of comparing cluster
-  letters directly, check whether two words share a label. Eliminates fragility caused
-  by cluster letter shifts when the word pool changes (e.g. switching between
-  `"end_only"` and `"full_line"` modes).
+> **Status (2026-06-07): dropped as a milestone.** The code is already split by concern
+> (`similarity_engine.py`, `clustering.py`, `rhyme_extraction.py`, `html_generation.py`,
+> `evaluation.py`), and the existing CLAUDE.md rule — *"all logic lives in `python/` as
+> importable modules; the notebook only calls them"* — already provides the modularity
+> guarantee a refactor milestone would have added. Blast-radius protection comes from the
+> tests (Rule 6), not from folder names. So no big-bang refactor and **no new modularity
+> rule.** Its three pieces are split out:
+>
+> - **Pairwise cluster-identity evaluation → pulled forward** (near-term task). Replace the
+>   fragile cluster-letter comparison with "do two words share a label?". This has been a
+>   known testing pain since M7, it makes M13/M14 easier to validate, and it is the *same*
+>   membership signal as the M19b screenshot labels — so it earns its keep immediately.
+> - **Folder grouping + CLI entry point → small pre-M23 task.** Group the existing modules
+>   into `alignment/ · rhyme_engine/ · scoring/ · visualisation/`, add a thin
+>   `python -m versedna analyse …` entry point, and per-module READMEs — done just before
+>   M23 when the structure has stopped moving (premature folder structure is churn).
+> - **"No logic in notebook cells" → already a rule**, kept as-is.
 
 ---
 

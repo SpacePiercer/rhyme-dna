@@ -279,9 +279,10 @@ behaviour is preserved unchanged.
 `expected_clusters` in the notebook is fragile: it stores cluster *letters* (A, B, C…)
 which shift whenever the word pool changes (e.g. switching between `"end_only"` and
 `"full_line"` modes). Rather than updating the dict every time the mode changes, the
-evaluation is left as-is for now. This will be replaced in Milestone 22 with a
-**pairwise cluster identity** check: instead of comparing letters, the evaluator asks
-"do these two words share a label?" — which is stable across any pool size or mode.
+evaluation is left as-is for now. This will be replaced with a **pairwise cluster
+identity** check: instead of comparing letters, the evaluator asks "do these two words
+share a label?" — which is stable across any pool size or mode. (This fix was bundled in
+the dropped M22; it is now a pulled-forward near-term task — see ROADMAP M22 note.)
 
 ---
 
@@ -342,8 +343,8 @@ evaluation is left as-is for now. This will be replaced in Milestone 22 with a
 - `"stressed_plus"` threshold (0.5) too permissive for `"full_line"` mode — shallow
   tail matches (e.g. `N D` in `and` vs `mound`) over-merge at that threshold.
   Recommended pairing: `"full_line"` + `"stressed"` + threshold `0.7`.
-- `expected_clusters` evaluation left as-is; will be replaced with pairwise identity
-  check in Milestone 22.
+- `expected_clusters` evaluation left as-is; will be replaced with a pairwise identity
+  check (pulled forward from the dropped M22 — now a near-term task).
 
 **Test verses:**
 ```
@@ -657,12 +658,18 @@ clustering at c = 0.3
 - Milestone 11: replace hand-coded similarity table with panphon feature vectors.
 - Milestone 12: assonance-first (vowel-weighted) similarity — coda-discount knob `c`.
 - Milestone 13: stress-aware scoring — weight the stressed vowel.
-- Milestone 14: syllable decomposition — per-syllable comparison.
+- Milestone 14: whole-word syllable decomposition — per-syllable comparison within word
+  boundaries (delivers whole-word analysis without M17's phoneme stream).
 - Milestone 15: phoneme-class letter colouring (DNA view) — default output mode.
 - Milestone 16: rgba alpha-encoded colour intensity for rhyme cluster view.
-- Milestone 17: global phoneme-stream rhyme detection — replaces tail-walk entirely.
+- Milestone 17: *deferred / optional* — boundary-free phoneme-stream detection; its one
+  unique capability is cross-word compound rhymes. Word-based tail-walk is NOT retired.
+- Milestone 18: *dropped* — replaced by the living `MFA_FAILURES.md` catalogue.
+- Milestone 19: rhyme-judgment dataset — 19a passive logging (starts now) + 19b
+  incremental labelling, incl. screenshot-derived cluster memberships.
 - Milestone 21: complexity scoring tied to OUTPUT_MODE = "rhyme" cluster output.
-- Milestone 22: replace letter-based evaluation with pairwise cluster identity check.
+- Milestone 22: *dropped* — pairwise cluster-identity evaluation pulled forward;
+  folder-grouping + CLI deferred to a small pre-M23 task; no new modularity rule.
 - Phoneme-stream repo: separate development track.
 - Language support: English only for now.
 
@@ -748,10 +755,17 @@ requiring a second threshold.
 Hue assignment will also be similarity-driven: phonetically related clusters (e.g.
 `-oud` / `-ound`) receive hues that are close together on the colour wheel.
 
-### Tail-walk retirement — Milestone 17
+### Tail-walk retirement — Milestone 17 (DEFERRED 2026-06-07)
+
+**Update (2026-06-07):** M17 is now **deferred / optional** and the tail-walk is **not**
+being retired. M14 delivers whole-word, multi-syllable rhyme *within* word boundaries,
+which covers the analysis we want; the word-based engine stays. M17's only irreplaceable
+capability is detecting rhymes *across* word boundaries (compound rhymes). Revisit only if
+that becomes worth the boundary-free rewrite. The rest of this section is kept as the
+design reference for if/when M17 is revived.
 
 `longest_common_tail_similarity()`, `extract_rhyme_unit()`, and
-`extract_rhyme_candidates()` are to be retired in Milestone 17 in favour of a
+`extract_rhyme_candidates()` were to be retired in Milestone 17 in favour of a
 boundary-free, stream-based pattern detector.
 
 **Why:** the tail-walk is anchored at word endings and compares fixed-length phoneme
