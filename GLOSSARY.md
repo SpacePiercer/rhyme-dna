@@ -1,7 +1,7 @@
 ---
 title: GLOSSARY
 type: note
-permalink: verse-dna/glossary
+permalink: rhyme-dna/glossary
 ---
 
 # GLOSSARY.md — Verse DNA

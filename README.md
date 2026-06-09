@@ -1,7 +1,7 @@
 ---
 title: README
 type: note
-permalink: verse-dna/readme
+permalink: rhyme-dna/readme
 ---
 
 # verse-dna
