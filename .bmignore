@@ -1,0 +1,35 @@
+# basic-memory ignore rules for the rhyme-dna knowledge base.
+#
+# IMPORTANT: basic-memory 0.21.6 local sync does NOT read this repo-level file.
+# It only reads the GLOBAL ignore file at ~/.basic-memory/.bmignore (see
+# basic_memory/ignore_utils.py -> get_bmignore_path / load_bmignore_patterns).
+# The patterns below are mirrored there; this file documents the intent in-repo
+# and is honored by `bm cloud upload` / `bm cloud bisync` and (hopefully) future
+# versions that support project-level ignores.
+#
+# Goal: index only the markdown knowledge notes (the root governance docs and
+# kb/), NOT the pipeline code, data, audio, generated artifacts, or binaries.
+#
+# Note: the matcher is fnmatch-based and does NOT support negation (!), so this
+# is a denylist, not an allowlist.
+
+python/
+data/
+input/
+output/
+m4a/
+full_songs/
+generated_html/
+textfiles/
+*.ipynb
+*.exe
+*.pdf
+*.mp3
+*.wav
+*.csv
+*.TextGrid
+*.jsonl
+_article_*
+_debug_*
+conftest.py
+skills-lock.json
