@@ -57,6 +57,28 @@ def normalize_phoneme(p):
     return p.lstrip("ˈˌ")
 
 
+# IPA vowel characters found in english_mfa output. Used to locate syllable
+# nuclei (syllabification.py) and the rhyme anchor (rhyme_extraction.py). Lives
+# here, beside normalize_phoneme, as a shared phonology primitive so both
+# higher-level modules import it from one place (and avoid an import cycle).
+_IPA_VOWELS = {
+    'a', 'e', 'i', 'o', 'u',   # ASCII base vowels (covers diphthongs aj, aw, oj)
+    'ɑ', 'ɒ', 'ɐ',              # open back / near-open central
+    'æ',                        # near-open front
+    'ɛ', 'ɜ',                   # open-mid front / central
+    'ɪ',                        # near-close near-front
+    'ɔ',                        # open-mid back
+    'ʊ',                        # near-close near-back
+    'ʌ',                        # open-mid back unrounded
+    'ə',                        # schwa
+}
+
+
+def _is_ipa_vowel(phoneme):
+    """Return True if any character in this IPA phoneme is a vowel."""
+    return any(c in _IPA_VOWELS for c in normalize_phoneme(phoneme))
+
+
 def _token_to_vector(token):
     """Return a single panphon feature vector for one rhyme-unit token.
 

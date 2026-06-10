@@ -24,8 +24,7 @@ M20 learned-weights milestone can tune how greedily onsets absorb consonants.
 
 from panphon.sonority import Sonority
 
-from python.rhyme_extraction import _is_ipa_vowel
-from python.similarity_engine import normalize_phoneme
+from python.similarity_engine import _is_ipa_vowel, normalize_phoneme
 
 # panphon's sonority scorer, instantiated once at import (loads feature tables).
 _SON = Sonority()
