@@ -342,3 +342,56 @@ def build_similarity_matrix(rhyme_candidates, similarity_pairs):
         matrix[wB][wA] = score
 
     return matrix
+
+
+# ---------------------------------------------------------------------------
+# Syllable-unit scoring (Milestone 13)
+# ---------------------------------------------------------------------------
+# The syllable engine clusters syllable units (from
+# rhyme_extraction.extract_syllable_candidates), not words. These two helpers
+# mirror compute_similarity_pairs / build_similarity_matrix but key everything
+# on each syllable's unique unit_id (a word contributes several syllables, and
+# the same syllable shape recurs across words, so the word string is no longer a
+# usable key). The resulting matrix feeds clustering.cluster_rhymes unchanged.
+
+def compute_syllable_pairs(syllable_units, **scorer_kwargs):
+    """Score every pair of syllable units with syllable_similarity.
+
+    Parameters
+    ----------
+    syllable_units : list of dict
+        Syllable units (each with 'unit_id', 'onset', 'nucleus', 'coda').
+    **scorer_kwargs
+        Passed through to syllable_similarity (e.g. onset_weight, coda_weight).
+
+    Returns
+    -------
+    list of dict
+        Each with keys 'idA', 'idB', 'similarity'.
+    """
+    results = []
+    for a, b in itertools.combinations(syllable_units, 2):
+        score = syllable_similarity(a, b, **scorer_kwargs)
+        results.append({
+            "idA": a["unit_id"],
+            "idB": b["unit_id"],
+            "similarity": score,
+        })
+    return results
+
+
+def build_syllable_matrix(syllable_units, syllable_pairs):
+    """Build a similarity matrix keyed by syllable unit_id.
+
+    Diagonal is 1.0 (a unit is identical to itself); off-diagonal entries come
+    from syllable_pairs; any unscored pair defaults to 0.0.
+    """
+    ids = [u["unit_id"] for u in syllable_units]
+    matrix = {i: {j: 0.0 for j in ids} for i in ids}
+    for i in ids:
+        matrix[i][i] = 1.0
+    for pair in syllable_pairs:
+        a, b, score = pair["idA"], pair["idB"], pair["similarity"]
+        matrix[a][b] = score
+        matrix[b][a] = score
+    return matrix
