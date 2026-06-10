@@ -76,6 +76,17 @@ this list is only the index.
 
 ### [ ] Milestone 13 — Syllable Engine (boundary-free, syllable-as-unit)
 
+> **In progress (2026-06-09).** Slices 1–3 + clustering plumbing are committed on
+> `m13-syllable-engine`; slice 4 (clustering + per-syllable HTML) is underway. Three
+> slice-4 forks are signed off (full detail in `DECISIONS.md` → "Milestone 13 — Syllable
+> Engine (IN PROGRESS)"): (1) **parallel notebook wiring** — the word path and the M19a
+> pair-logging in Section 5 stay untouched, the syllable engine is added as new cells and
+> becomes the primary view; (2) **full IPA-aware aligner** for per-syllable colour spans
+> (the current aligner is ARPAbet-keyed); (3) **normalisation ships on `maxlen`**, then
+> the verse's real pairwise score distribution is measured and effective (weighted)
+> length is adopted only if it changes the clusters (with a zero-guard + threshold
+> re-sweep).
+
 **Goal:** make the **syllable** the atomic unit the pipeline clusters and colours,
 replacing the word-level single-tail rhyme unit. Syllables cluster **freely across word
 and line boundaries**, so a long word participates in a scheme through *any* of its
