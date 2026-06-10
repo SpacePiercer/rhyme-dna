@@ -1,3 +1,9 @@
+---
+title: LESSONS
+type: note
+permalink: rhyme-dna/lessons
+---
+
 # LESSONS.md — Verse DNA
 
 An in-repo log of mistakes made and corrections received, so the same ones are not

@@ -1,3 +1,9 @@
+---
+title: MFA_FAILURES
+type: note
+permalink: rhyme-dna/mfa-failures
+---
+
 # MFA_FAILURES.md — Known MFA Alignment Failures
 
 A living catalogue of cases where MFA (Montreal Forced Aligner — the tool that lines up
