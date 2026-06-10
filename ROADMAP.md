@@ -178,65 +178,117 @@ average-linkage was adopted.
 
 ## Upcoming
 
-### [ ] Milestone 13 — Stress-Aware Scoring
+> **Reorder + scope override (2026-06-08, grill session).** M14 and M13 were swapped
+> and M14 was re-scoped. M14 (now the **boundary-free syllable engine**) is the **next**
+> milestone; the old M13 (stress) becomes a **per-syllable weight layered on top of
+> M14** and follows it. This supersedes the 2026-06-07 "word-boundary-respecting"
+> scoping of M14 and consciously **revives the boundary-free rewrite that was deferred
+> to M17** — decision made with full knowledge of the cost (the word-based engine and
+> the word-level rhyme unit are retired). Milestone *numbers* are kept (M13 = stress,
+> M14 = syllables) to avoid breaking cross-references; **physical order sets "next"**, so
+> M14 appears first below.
 
-**Goal:** use **stress** (which syllable is said with more force) so the *stressed*
-vowel weighs more than unstressed ones — bringing the score closer to which rhymes a
-listener actually perceives as the backbone of a line.
+### [ ] Milestone 14 — Syllable Engine (boundary-free, syllable-as-unit)
 
-Subgoals:
-- Stop discarding MFA's stress marks: `normalize_phoneme` currently strips `ˈ` (primary)
-  and `ˌ` (secondary) on line 36 of `similarity_engine.py`. Carry that information
-  through extraction instead of throwing it away.
-- Give the stressed vowel extra weight in `rhyme_unit_similarity` (layered on top of the
-  M12 vowel-weighting).
-- **Scope limit:** this is *word-internal lexical* stress only (where a word is normally
-  stressed, e.g. ÚL-ti-mate). The *performed/metrical* accent across the bar (the 1-vs-2
-  groove accents) is NOT available from MFA's labels and is deferred — a possible future
-  proxy is vowel duration from the TextGrid, revisited only if needed.
+**Goal:** make the **syllable** the atomic unit the pipeline clusters and colours,
+replacing the word-level single-tail rhyme unit. Syllables cluster **freely across word
+and line boundaries**, so a long word participates in a scheme through *any* of its
+syllables and cross-word compound rhymes start to surface.
 
-**Why this matters:** the stressed vowel is the anchor of a rhyme. Weighting it makes
-the engine agree with the ear on which syllable "carries" the rhyme.
+**What this retires:** `extract_rhyme_unit` (word tail), the word-level `rhyme_unit`,
+and the word-as-scored-unit assumption running through `compute_similarity_pairs` /
+`build_similarity_matrix` / clustering / HTML / evaluation. (The tail-walk
+`longest_common_tail_similarity` was already retired in M11.) `extract_rhyme_candidates`
+is reworked to emit syllable units, each keeping a back-pointer to its source word +
+character span (needed for colouring).
 
-**Depends on:** Milestone 12.
+Subgoals / agreed design (grill 2026-06-08):
+- **Syllabifier** — a maximal-onset splitter built on **panphon's IPA-native sonority**
+  (no new dependency; syllabipy was tested and rejected — it returns `[]` on IPA input).
+  Each vowel is a nucleus; a consonant cluster between two vowels gives its
+  rising-sonority tail to the *next* syllable's onset, the rest become the coda.
+  Diphthongs (`aj`, `aw`) stay one nucleus via the existing vowel detector (panphon's
+  sonority mis-scores the diphthong token). The sonority threshold becomes an
+  M20-tunable knob.
+- **Comparison unit = the full syllable**, scored through the existing panphon weighted
+  feature-edit-distance scorer, now made **role-aware** with a small family of knobs
+  (all swap-ready for M20):
+  - onset weight `o = 0` (new — onsets ignored for now; tunable later)
+  - nucleus / vowel = full weight
+  - coda discount `c = 0.3` (M12, unchanged)
+  - Effect: *clip* / *grip* = 1.0 (onsets dropped) while the coda still contributes a
+    graded amount.
+- **Free cross-word clustering** — syllable units cluster regardless of which word or
+  line they came from.
+- **Clustering rule** — average-linkage (chaining risk is *higher* with short syllable
+  units, so it is even more justified than in M12), threshold carried at **0.7** but
+  **re-swept** on the verse and reported.
+- **Rendering** — per-syllable independent colours: a multi-syllable word can wear
+  several colours, one per syllable's cluster (the literal "Verse DNA" texture). Extend
+  the grapheme aligner from suffix-only to per-syllable character spans (also groundwork
+  for M15).
 
----
-
-### [ ] Milestone 14 — Syllable Decomposition
-
-**Goal:** cut multi-syllable words into **syllables** and compare them
-syllable-by-syllable, instead of taking only the single tail from the last stressed
-vowel to the end of the word. This lets a long word participate in a scheme through
-*each* of its syllables (e.g. *ultimate* → ul-ti-mate matching across *utmost · with ·
-it*).
-
-**This is the "whole word" milestone.** It is *word-boundary-respecting* — every
-syllable of every word becomes comparable, but each word is still scored as a word.
-This delivers whole-word, multi-syllable rhyme **without** the boundary-free phoneme
-stream of M17. The only thing M14 cannot do that M17 could is span *across* word
-boundaries (compound rhymes like *load the clip* / *both are gripped*); that capability
-is deferred with M17 and is not required to get whole-word analysis.
-
-Subgoals:
-- Add a **syllabifier** — a standard algorithm that chops a phoneme stream into
-  syllables by the rise-and-fall of sonority (how open/loud each sound is).
-- Produce a per-syllable representation; compare words syllable-by-syllable rather than
-  as one tail blob (a word can now match on *any* of its syllables, not just the tail).
-- Keep the M12/M13 vowel- and stress-weighting working on the new per-syllable units.
-
-**Why this matters:** the current "last-vowel-to-end" rhyme unit can only see one
-syllable. Whole-word syllable decomposition lets every syllable of a word participate —
-e.g. *ultimate*'s "ul" and "ti" can rhyme elsewhere, not just its final "-it/-ət" tail
-(which is all the engine sees today).
+**What is left for M17 (still deferred / optional):** stitching matched syllables into
+*contiguous multi-syllable run* objects — recognising *load-the-clip* ↔ *both-are-gripped*
+as **one** rhyme rather than three coincidental syllable matches. The cross-word
+syllable *matches* themselves are now M14's job; M17's orphaned items (the `ignites`
+false-negative and the windowed/drift linkage) move under that reduced M17.
 
 **Before/after (real data, current verse):**
 ```
-"ultimate"  (english_mfa: ˈʌl.tə.mət)
-- Now (tail-only):  rhyme unit ≈ [ə, t]  → only the "-it/-ət" sound clusters
-- After M14:        ul · ti · mate       → all three syllables become matchable
+"explosive"  (english_mfa: ɛ k s p l o s i v)
+- Now (tail-only):  one unit "-ɪv"  → sits weakly in the short-i family, one colour
+- After M14:        ex · plo · sive
+                    plo  → "o" family (load / both …)   [colour 1]
+                    sive → short-i family (clip / tip)  [colour 2; stress later fades it]
 ```
 
-**Depends on:** Milestone 13.
+**Validation (definition of done — targeted behavioural checks):** splitter unit tests
+(`ultimate → ul·ti·mate`, `explosive → ex·plo·sive`); asserted cross-word wins
+(`clip ~ gripped`, `load·oʊ ~ both·oʊ`); the short-i monosyllable family preserved;
+`o = 0` verified; notebook runs clean end-to-end (Rule 7) on the *load the clip* verse.
+Build in independently-runnable slices: (1) splitter + tests, (2) syllable extraction
+replacing `extract_rhyme_unit`, (3) role-aware scorer with `o`, (4) clustering +
+per-syllable HTML. A formal accuracy metric is deferred.
+
+**Depends on:** Milestone 12 (assonance scorer), Milestone 11 (panphon). Feeds the
+reduced Milestone 17 (run stitching).
+
+---
+
+### [ ] Milestone 13 — Stress as a Per-Syllable Prominence Weight (after M14)
+
+> **Premise correction (2026-06-08).** The original "stop discarding MFA's stress marks"
+> subgoal is **void**: `english_mfa` emits **no stress marks at all** — confirmed in both
+> the aligned TextGrid phones tier *and* the dictionary itself (`explosive → ɛ k s p l o
+> s i v`, `guitar → ɡ ɐ tʰ ɑ`, `ultimate → ɐ ɫ t ə mʲ ɪ t`). `normalize_phoneme`
+> stripping `ˈ`/`ˌ` is a no-op on real data. Stress must therefore be **estimated
+> acoustically** and is applied as a weight on M14's syllable units — so it runs **after**
+> M14.
+
+**Goal:** weight each syllable by how *prominent* (stressed) it was, so the prominent
+syllable carries the rhyme and unstressed syllables are down-weighted — bringing the
+score closer to what the ear hears as the backbone of a line.
+
+Subgoals (revised):
+- Estimate per-syllable prominence from acoustic cues. **Duration** (vowel length, read
+  from the TextGrid) is the only **beat-robust** cue and works on the current mixed
+  input. **Loudness** and **pitch** are corrupted by the instrumental — confirmed: the
+  silent gaps between words measured as loud as the vowels (a −10.4 dB gap vs
+  *explosive*'s −12 to −15 dB vowels) — so they require a **clean vocal**, gated behind a
+  future acapella / source-separation input step.
+- Apply prominence as a per-syllable weight in the M14 scorer: up-weight the prominent
+  syllable, down-weight the unstressed (e.g. demote *explosive*'s "-ive" match to the
+  short-i family — see the M14 before/after). Swap-ready for the M20 learned weights.
+- **Open question to revisit, not assume:** M16 (colour intensity) and M20 (learned
+  weights) may *partially substitute* for an explicit stress signal. Re-judge whether
+  acoustic stress is worth its noise once M14/M16 exist.
+
+**Why this matters:** the stressed syllable is the anchor of a rhyme; weighting it makes
+the engine agree with the ear on which syllable "carries" the rhyme — without it, M14's
+richer syllable comparison surfaces more incidental unstressed-syllable matches.
+
+**Depends on:** Milestone 14.
 
 ---
 
@@ -305,16 +357,21 @@ full panphon scorer is stable.
 
 ### [-] Milestone 17 — Global Phoneme-Stream Rhyme Detection (DEFERRED / OPTIONAL)
 
-> **Status (2026-06-07): deferred and optional.** M14 delivers whole-word,
-> multi-syllable rhyme *within* word boundaries, which covers the analysis we want.
-> M17's **only** irreplaceable capability is detecting rhymes that span *across* word
-> boundaries (compound rhymes like *load the clip* / *both are gripped*). Because we are
-> keeping the word-based engine, the tail-walk is **not** being retired and M13/M14 are
-> the permanent engine, not scaffolding. Pick M17 up later *only* if cross-word compound
-> detection becomes worth the boundary-free rewrite. The two orphaned items it carried —
-> the `ignites` false-negative (a clustering question, possibly already changed by M12's
-> average-linkage) and the deferred windowed/drift linkage — need a new home if M17 stays
-> shelved.
+> **Status (2026-06-08): reduced, still deferred / optional.** *Supersedes the
+> 2026-06-07 status below.* The M14 override (boundary-free syllable engine) absorbed
+> M17's cross-word *matching* capability — syllable units now cluster freely across word
+> boundaries in M14, so compound rhymes like *load the clip* / *both are gripped* surface
+> there as parallel syllable matches. What remains uniquely M17's is **run stitching**:
+> recognising those parallel matches as **one contiguous multi-syllable rhyme object**
+> rather than several coincidental syllable matches. The word-based engine and the
+> word-level rhyme unit **are** being retired (in M14), so the earlier "keep the
+> word-based engine" framing no longer holds. The two orphaned items — the `ignites`
+> false-negative and the windowed/drift linkage — now live under this reduced M17.
+>
+> **Original status (2026-06-07), kept for history:** *M14 delivers whole-word rhyme
+> within word boundaries; M17's only irreplaceable capability is cross-word compound
+> rhymes; the word-based engine is kept and the tail-walk is not retired.* — This was
+> overridden on 2026-06-08; see above.
 >
 > The rest of this section is kept verbatim as a design reference for if/when M17 is revived.
 
