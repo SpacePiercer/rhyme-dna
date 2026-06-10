@@ -2,6 +2,9 @@
 title: LESSONS
 type: note
 permalink: rhyme-dna/lessons
+tags:
+- lessons
+- workflow
 ---
 
 # LESSONS.md — Verse DNA

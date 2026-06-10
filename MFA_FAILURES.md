@@ -1,7 +1,11 @@
 ---
-title: MFA_FAILURES
+title: MFA Failures
 type: note
 permalink: rhyme-dna/mfa-failures
+tags:
+- mfa
+- alignment
+- failures
 ---
 
 # MFA_FAILURES.md — Known MFA Alignment Failures

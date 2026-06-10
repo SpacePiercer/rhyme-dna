@@ -1,27 +1,38 @@
 ---
 title: CLAUDE
 type: note
-permalink: verse-dna/claude
+permalink: rhyme-dna/claude
 ---
 
 # CLAUDE.md — Verse DNA
 
-This file contains standing instructions for every chat in this project.
-Read this file and `DECISIONS.md` at the start of every new chat before doing anything else.
-The current milestone to work on is always the first one marked `[ ]` in `ROADMAP.md`.
+This file contains the standing rules for every chat in this project (auto-loaded each
+session). The project's decisions, roadmap, glossary, and lessons live in the
+**basic-memory** knowledge base (project `rhyme-dna`) — load them at the start of every
+chat per the startup sequence below. The current milestone to work on is always the first
+one still marked `[ ]` in the roadmap note (`rhyme-dna/roadmap`).
 
 ---
 
 ## Startup sequence for every new chat
 
-1. Read this file (`CLAUDE.md`)
-2. Read `DECISIONS.md` — understand what has been built and why
-3. Read `ROADMAP.md` — identify the next incomplete milestone
-4. Read `GLOSSARY.md` — domain-term dictionary and the decision backlog
-5. Search the basic-memory KB (`verse-dna` project) for notes relevant to the
-   upcoming milestone — use `mcp__basic-memory__search` with the milestone topic
-6. Confirm you are ready with a brief recap: current state of the project, and the
+The project's knowledge lives in the **basic-memory** knowledge base (project
+`rhyme-dna`), which indexes the governance notes in this repo. Retrieve from it rather
+than reading raw files:
+
+1. Read this file (`CLAUDE.md`) — the standing rules (auto-loaded each session)
+2. `read_note "rhyme-dna/decisions"` — the decision log: what has been built and why
+3. `read_note "rhyme-dna/roadmap"` — identify the next incomplete milestone (the first
+   one still marked `[ ]`)
+4. `read_note "rhyme-dna/glossary"` — domain-term dictionary and the decision backlog
+5. `read_note "rhyme-dna/lessons"` — mistakes already made and corrected
+6. `search_notes "<milestone topic>"` — find KB notes relevant to the upcoming milestone
+7. Confirm you are ready with a brief recap: current state of the project, and the
    milestone you are about to begin
+
+If the basic-memory MCP tools are unavailable in a session, fall back to reading the same
+content from the source files in the repo (`DECISIONS.md`, `ROADMAP.md`, `GLOSSARY.md`,
+`LESSONS.md`) — they are the markdown behind these notes.
 
 ---
 
@@ -35,8 +46,9 @@ displayed with rhyming words highlighted in matching colours.
 The system is English-only while MFA + ARPAbet is in use. Music analysis (tonality,
 tempo, etc.) is explicitly out of scope until the lyrics engine is mature.
 
-All architectural decisions and their reasoning live in `DECISIONS.md`.
-The forward-looking milestone plan lives in `ROADMAP.md`.
+All architectural decisions and their reasoning live in the decision-log note
+(`rhyme-dna/decisions`, source file `DECISIONS.md`). The forward-looking milestone plan
+lives in the roadmap note (`rhyme-dna/roadmap`, source file `ROADMAP.md`).
 
 ---
 
@@ -92,13 +104,16 @@ For every new or corrected notebook cell, explicitly state which section of the
 notebook it belongs to and where relative to existing cells it should be placed.
 The notebook (`rhyme-DNA.ipynb`) is available in the project repo — look it up there.
 
-### Rule 5 — Update DECISIONS.md at milestone completion
+### Rule 5 — Record decisions and progress at milestone completion
 
-When a milestone is finished, produce an updated `DECISIONS.md` that appends a new
-section describing what was built, what decisions were made, and why. This section
-becomes the context for the next chat.
+When a milestone is finished, append a new section to the decision-log note
+(`rhyme-dna/decisions`, source file `DECISIONS.md`) describing what was built, what
+decisions were made, and why. This becomes the context for the next chat. Update it via
+basic-memory (`write_note` / `edit_note`) or by editing `DECISIONS.md` directly — it is
+the source file behind the note, and basic-memory re-indexes it on sync.
 
-Also mark the completed milestone as `[x]` in `ROADMAP.md`.
+Also mark the completed milestone as `[x]` in the roadmap note (`rhyme-dna/roadmap`,
+source file `ROADMAP.md`).
 
 ### Rule 6 — Tests with every change
 
@@ -132,7 +147,8 @@ I am not a linguist and not a domain expert. Write for a general audience:
   precise definition.
 - Never assume I know jargon, abbreviations, or symbols (IPA characters, feature
   names, etc.) — spell them out the first time they come up.
-- **Checkmark exemption:** terms marked with a leading `✓` in `GLOSSARY.md` are ones
+- **Checkmark exemption:** terms marked with a leading `✓` in the glossary note
+  (`rhyme-dna/glossary`, source file `GLOSSARY.md`) are ones
   I have explicitly told you I understand. Do **not** re-explain a ✓ term inline (no
   bracketed definition) — treat it as known. Unmarked terms still get the bracket
   treatment above. When I tell you I understand a term, add the `✓` to its glossary
@@ -165,8 +181,9 @@ decision is correct, without needing to read the implementation.
 
 ### Rule 10 — Maintain the glossary and decision backlog
 
-The project keeps a `GLOSSARY.md` with two parts: (A) a plain-language dictionary of
-every domain-specific term, and (B) a dated backlog of measurement/linguistic decisions.
+The project keeps a glossary note (`rhyme-dna/glossary`, source file `GLOSSARY.md`) with
+two parts: (A) a plain-language dictionary of every domain-specific term, and (B) a dated
+backlog of measurement/linguistic decisions.
 
 - **When you use a domain term** that is not yet in Part A, add it there with a plain
   explanation (this is how Rule 8 is recorded permanently).
@@ -343,13 +360,14 @@ should keep in mind when reading the diff.
 ```
 
 When asked to create a PR, populate this template using the milestone description
-from `ROADMAP.md` and the decisions recorded in `DECISIONS.md` for that milestone.
+from the roadmap note (`rhyme-dna/roadmap`) and the decisions recorded in the
+decision-log note (`rhyme-dna/decisions`) for that milestone.
 
 ---
 
 ## What not to do
 
-- Do not hallucinate progress — if something is not in `DECISIONS.md`, it has not been built
+- Do not hallucinate progress — if something is not in the decision log (`rhyme-dna/decisions`), it has not been built
 - Do not change the direction of the project without explicitly flagging it
 - Do not answer everything in one message — keep responses focused; let me ask follow-ups
 - Do not skip the pseudo-code requirement
