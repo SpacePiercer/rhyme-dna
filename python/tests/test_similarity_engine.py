@@ -13,9 +13,11 @@ from python.similarity_engine import (
     rhyme_unit_similarity,
     rhyme_similarity,
     phoneme_similarity,
+    syllable_similarity,
     SEG_COST,
-    CODA_DISCOUNT,
+    CODA_WEIGHT,
 )
+from python.syllabification import syllabify
 
 OUND = ["aw", "n", "d"]
 OUD = ["aw", "d"]
@@ -118,7 +120,7 @@ def test_seg_cost_is_positive():
 
 def test_default_coda_discount_is_assonance_setting():
     # The module ships with the swept value; default calls use it.
-    assert CODA_DISCOUNT == 0.3
+    assert CODA_WEIGHT == 0.3
     assert rhyme_unit_similarity(IT, TIP) == rhyme_unit_similarity(IT, TIP, coda_discount=0.3)
 
 
@@ -145,3 +147,48 @@ def test_vowel_cost_unchanged_by_discount():
     full = rhyme_unit_similarity(["ɪ"], ["ʌ"], coda_discount=1.0)
     zero = rhyme_unit_similarity(["ɪ"], ["ʌ"], coda_discount=0.0)
     assert full == zero
+
+
+# --- role-aware syllable scorer (Milestone 13) ------------------------------
+
+# Real english_mfa-style monosyllables, syllabified into onset/nucleus/coda.
+def _syl(phonemes):
+    return syllabify(phonemes)[0]
+
+CLIP = _syl(["k", "l", "ɪ", "p"])   # onset kl, nucleus ɪ, coda p
+GRIP = _syl(["ɡ", "r", "ɪ", "p"])   # onset ɡr, nucleus ɪ, coda p  (same -ɪp)
+CLICK = _syl(["k", "l", "ɪ", "k"])  # same nucleus, different coda
+CLAP = _syl(["k", "l", "a", "p"])   # different nucleus, same coda
+
+
+def test_identical_syllable_scores_one():
+    assert syllable_similarity(CLIP, CLIP) == 1.0
+
+
+def test_onsets_ignored_clip_grip_perfect():
+    # With ONSET_WEIGHT = 0 the kl-/ɡr- onsets are dropped; clip and grip share
+    # an identical nucleus and coda, so they score a perfect 1.0.
+    assert syllable_similarity(CLIP, GRIP) == pytest.approx(1.0, abs=1e-9)
+
+
+def test_onset_weight_knob_makes_onsets_count():
+    # Turning the onset weight up must pull clip/grip below 1.0 (now the
+    # different onsets cost something). Proves the knob is wired through.
+    assert syllable_similarity(CLIP, GRIP, onset_weight=1.0) < 1.0
+
+
+def test_nucleus_drives_score_more_than_coda():
+    # Same vowel + different coda (clip/click) should rhyme MORE strongly than
+    # different vowel + same coda (clip/clap): the nucleus carries the rhyme.
+    same_vowel = syllable_similarity(CLIP, CLICK)
+    diff_vowel = syllable_similarity(CLIP, CLAP)
+    assert same_vowel > diff_vowel
+    assert same_vowel < 1.0   # different coda still costs a little
+
+
+def test_coda_weight_zero_ignores_coda():
+    # With both onset and coda weights at 0, only the nucleus matters, so
+    # clip and click (same nucleus) become identical -> 1.0.
+    assert syllable_similarity(
+        CLIP, CLICK, onset_weight=0.0, coda_weight=0.0
+    ) == pytest.approx(1.0, abs=1e-9)

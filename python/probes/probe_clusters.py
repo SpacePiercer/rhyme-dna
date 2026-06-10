@@ -48,7 +48,7 @@ def get_candidates():
 
 
 def _matrix(candidates, c):
-    se.CODA_DISCOUNT = c
+    se.CODA_WEIGHT = c
     pairs = compute_similarity_pairs(candidates, rhyme_mode=RHYME_MODE)
     return build_similarity_matrix(candidates, pairs)
 
