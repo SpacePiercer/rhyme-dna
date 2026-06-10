@@ -1,7 +1,7 @@
 ---
 title: ROADMAP
 type: note
-permalink: rhyme-dna/roadmap
+permalink: verse-dna/roadmap
 ---
 
 # ROADMAP.md — Verse DNA
@@ -145,7 +145,7 @@ throwaway work.
 - `filter_clusters()` gates on *deep* members so bare vowels ("I") stay in a
   cluster without blocking it
 - Clustering threshold kept at 0.7 (**Option B**) → -ound / -oud merge into one
-  "ow-ending" family; diphthong-as-one and bare-vowel handling deferred (M17 / M14)
+  "ow-ending" family; diphthong-as-one and bare-vowel handling deferred (M17 / M13)
 - Tests: `python/tests/` (16 passing); notebook re-run end-to-end, both families render
 
 **Decision detail:** see `DECISIONS.md` → "Milestone 11 — Replace Similarity Engine with panphon".
@@ -167,8 +167,8 @@ throwaway work.
 **Result (short-i verse, `c = 0.3`):** the scheme merges into one 17-word family
 (11/11 of *with/clip/hip/gripped/width/tip/slit/it/chips/fit/ultimate*), plus 6 more
 words that genuinely share the short-i vowel (*explosive, give, in, is, still, think*) —
-correct matches, not noise. Refining them is later work: M13 (stress) down-weights ones
-whose vowel is unstressed; M14/M17 surface the multi-word compound schemes some belong
+correct matches, not noise. Refining them is later work: M14 (stress) down-weights ones
+whose vowel is unstressed; M13/M17 surface the multi-word compound schemes some belong
 to. Single-linkage was tried first but chained the whole verse into one 79-word blob, so
 average-linkage was adopted.
 
@@ -178,17 +178,18 @@ average-linkage was adopted.
 
 ## Upcoming
 
-> **Reorder + scope override (2026-06-08, grill session).** M14 and M13 were swapped
-> and M14 was re-scoped. M14 (now the **boundary-free syllable engine**) is the **next**
-> milestone; the old M13 (stress) becomes a **per-syllable weight layered on top of
-> M14** and follows it. This supersedes the 2026-06-07 "word-boundary-respecting"
-> scoping of M14 and consciously **revives the boundary-free rewrite that was deferred
-> to M17** — decision made with full knowledge of the cost (the word-based engine and
-> the word-level rhyme unit are retired). Milestone *numbers* are kept (M13 = stress,
-> M14 = syllables) to avoid breaking cross-references; **physical order sets "next"**, so
-> M14 appears first below.
+> **Reorder + scope override (2026-06-08, grill session; renumbered 2026-06-09).** The
+> syllable engine and the stress milestone were swapped in order, and the syllable engine
+> was re-scoped. **M13 (now the boundary-free syllable engine)** is the **next** milestone;
+> **M14 (stress)** becomes a **per-syllable weight layered on top of M13** and follows it.
+> This supersedes the 2026-06-07 "word-boundary-respecting" scoping of the syllable engine
+> and consciously **revives the boundary-free rewrite that was deferred to M17** — decision
+> made with full knowledge of the cost (the word-based engine and the word-level rhyme unit
+> are retired). The milestones were then **renumbered so the numbers follow work order**
+> (M13 = syllables, M14 = stress); earlier dated notes below that say "M14 = syllables /
+> M13 = stress" are pre-renumber snapshots and are kept as history.
 
-### [ ] Milestone 14 — Syllable Engine (boundary-free, syllable-as-unit)
+### [ ] Milestone 13 — Syllable Engine (boundary-free, syllable-as-unit)
 
 **Goal:** make the **syllable** the atomic unit the pipeline clusters and colours,
 replacing the word-level single-tail rhyme unit. Syllables cluster **freely across word
@@ -231,14 +232,14 @@ Subgoals / agreed design (grill 2026-06-08):
 **What is left for M17 (still deferred / optional):** stitching matched syllables into
 *contiguous multi-syllable run* objects — recognising *load-the-clip* ↔ *both-are-gripped*
 as **one** rhyme rather than three coincidental syllable matches. The cross-word
-syllable *matches* themselves are now M14's job; M17's orphaned items (the `ignites`
+syllable *matches* themselves are now M13's job; M17's orphaned items (the `ignites`
 false-negative and the windowed/drift linkage) move under that reduced M17.
 
 **Before/after (real data, current verse):**
 ```
 "explosive"  (english_mfa: ɛ k s p l o s i v)
 - Now (tail-only):  one unit "-ɪv"  → sits weakly in the short-i family, one colour
-- After M14:        ex · plo · sive
+- After M13:        ex · plo · sive
                     plo  → "o" family (load / both …)   [colour 1]
                     sive → short-i family (clip / tip)  [colour 2; stress later fades it]
 ```
@@ -256,15 +257,15 @@ reduced Milestone 17 (run stitching).
 
 ---
 
-### [ ] Milestone 13 — Stress as a Per-Syllable Prominence Weight (after M14)
+### [ ] Milestone 14 — Stress as a Per-Syllable Prominence Weight (after M13)
 
 > **Premise correction (2026-06-08).** The original "stop discarding MFA's stress marks"
 > subgoal is **void**: `english_mfa` emits **no stress marks at all** — confirmed in both
 > the aligned TextGrid phones tier *and* the dictionary itself (`explosive → ɛ k s p l o
 > s i v`, `guitar → ɡ ɐ tʰ ɑ`, `ultimate → ɐ ɫ t ə mʲ ɪ t`). `normalize_phoneme`
 > stripping `ˈ`/`ˌ` is a no-op on real data. Stress must therefore be **estimated
-> acoustically** and is applied as a weight on M14's syllable units — so it runs **after**
-> M14.
+> acoustically** and is applied as a weight on M13's syllable units — so it runs **after**
+> M13.
 
 **Goal:** weight each syllable by how *prominent* (stressed) it was, so the prominent
 syllable carries the rhyme and unstressed syllables are down-weighted — bringing the
@@ -277,18 +278,18 @@ Subgoals (revised):
   silent gaps between words measured as loud as the vowels (a −10.4 dB gap vs
   *explosive*'s −12 to −15 dB vowels) — so they require a **clean vocal**, gated behind a
   future acapella / source-separation input step.
-- Apply prominence as a per-syllable weight in the M14 scorer: up-weight the prominent
+- Apply prominence as a per-syllable weight in the M13 scorer: up-weight the prominent
   syllable, down-weight the unstressed (e.g. demote *explosive*'s "-ive" match to the
-  short-i family — see the M14 before/after). Swap-ready for the M20 learned weights.
+  short-i family — see the M13 before/after). Swap-ready for the M20 learned weights.
 - **Open question to revisit, not assume:** M16 (colour intensity) and M20 (learned
   weights) may *partially substitute* for an explicit stress signal. Re-judge whether
-  acoustic stress is worth its noise once M14/M16 exist.
+  acoustic stress is worth its noise once M13/M16 exist.
 
 **Why this matters:** the stressed syllable is the anchor of a rhyme; weighting it makes
-the engine agree with the ear on which syllable "carries" the rhyme — without it, M14's
+the engine agree with the ear on which syllable "carries" the rhyme — without it, M13's
 richer syllable comparison surfaces more incidental unstressed-syllable matches.
 
-**Depends on:** Milestone 14.
+**Depends on:** Milestone 13.
 
 ---
 
@@ -358,13 +359,13 @@ full panphon scorer is stable.
 ### [-] Milestone 17 — Global Phoneme-Stream Rhyme Detection (DEFERRED / OPTIONAL)
 
 > **Status (2026-06-08): reduced, still deferred / optional.** *Supersedes the
-> 2026-06-07 status below.* The M14 override (boundary-free syllable engine) absorbed
+> 2026-06-07 status below.* The M13 override (boundary-free syllable engine) absorbed
 > M17's cross-word *matching* capability — syllable units now cluster freely across word
-> boundaries in M14, so compound rhymes like *load the clip* / *both are gripped* surface
+> boundaries in M13, so compound rhymes like *load the clip* / *both are gripped* surface
 > there as parallel syllable matches. What remains uniquely M17's is **run stitching**:
 > recognising those parallel matches as **one contiguous multi-syllable rhyme object**
 > rather than several coincidental syllable matches. The word-based engine and the
-> word-level rhyme unit **are** being retired (in M14), so the earlier "keep the
+> word-level rhyme unit **are** being retired (in M13), so the earlier "keep the
 > word-based engine" framing no longer holds. The two orphaned items — the `ignites`
 > false-negative and the windowed/drift linkage — now live under this reduced M17.
 >

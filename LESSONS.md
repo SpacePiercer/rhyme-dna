@@ -2,9 +2,6 @@
 title: LESSONS
 type: note
 permalink: rhyme-dna/lessons
-tags:
-- lessons
-- workflow
 ---
 
 # LESSONS.md — Verse DNA
@@ -42,7 +39,7 @@ what the vowel-weighted scorer is built to detect. I had quietly imported a *hum
 intent judgment* ("the rapper probably didn't mean these as the scheme") and treated
 the engine's correct detections as if they were errors.
 
-**Also wrong:** I said stress weighting (M13) would "drop" *explosive*. Its shared vowel
+**Also wrong:** I said stress weighting (M14) would "drop" *explosive*. Its shared vowel
 is in the unstressed "-ive", so stress would only **down-weight** it (rank it as a weaker
 member), not exclude it.
 
@@ -51,5 +48,5 @@ member), not exclude it.
   intuition of what the artist intended?"
 - Never call a correct detection "noise" or "incidental." If it is weaker or part of a
   bigger structure, say exactly that and name the milestone that will refine it (M13
-  stress, M14 syllables, M17 cross-word streams).
+  syllables, M14 stress, M17 cross-word streams).
 - Distinguish **down-weighting** (strength/ranking) from **exclusion** (membership).

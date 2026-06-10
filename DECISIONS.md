@@ -1,7 +1,7 @@
 ---
 title: DECISIONS
 type: note
-permalink: rhyme-dna/decisions
+permalink: verse-dna/decisions
 ---
 
 # Verse DNA — Decision Log
@@ -386,7 +386,7 @@ It was crazy the shit went way beyond some Jay Z and Nas shit
 - **Filter at render time, not extraction time** — consistent with the Milestone 7
   decision not to filter function words at extraction time. All candidates flow
   through the pipeline; the render layer decides what is worth showing. This keeps
-  the pipeline data complete for scoring and evaluation (Milestone 13).
+  the pipeline data complete for scoring and evaluation (Milestone 14).
 - **Safe fallback on alignment failure** — `find_rhyme_suffix_span()` returns
   `(0, len(word))` (whole-word highlight) on any alignment failure. Never crashes,
   never silently drops a highlight.
@@ -633,8 +633,8 @@ rhyme judgments is Milestone 20.
   — they really do carry the short-i vowel (e.g. *explosive* / *give* on the "-ive"
   ending), which is exactly what the scorer is built to detect. They are not "incidental"
   and must not be treated as errors. Two later milestones *refine* them rather than
-  remove them: M13 (stress) **down-weights** members whose shared vowel is *unstressed*
-  (e.g. *explosive* → "-ive"), making them weaker — not dropped; and M14 (syllables) /
+  remove them: M14 (stress) **down-weights** members whose shared vowel is *unstressed*
+  (e.g. *explosive* → "-ive"), making them weaker — not dropped; and M13 (syllables) /
   M17 (cross-word streams) will reveal that some are tails of larger multi-word
   *compound* schemes the word-based engine cannot yet represent.
 
@@ -657,9 +657,11 @@ clustering at c = 0.3
 - Milestone 10: switch MFA to IPA — prerequisite for panphon integration.
 - Milestone 11: replace hand-coded similarity table with panphon feature vectors.
 - Milestone 12: assonance-first (vowel-weighted) similarity — coda-discount knob `c`.
-- Milestone 13: stress-aware scoring — weight the stressed vowel.
-- Milestone 14: whole-word syllable decomposition — per-syllable comparison within word
-  boundaries (delivers whole-word analysis without M17's phoneme stream).
+- Milestone 13: syllable engine (boundary-free) — the syllable becomes the atomic unit
+  the pipeline clusters and colours, free across word boundaries (revives the deferred
+  M17 stream matching; retires the word-level rhyme unit).
+- Milestone 14: stress as a per-syllable prominence weight — down-weight unstressed
+  syllables on top of M13's units.
 - Milestone 15: phoneme-class letter colouring (DNA view) — default output mode.
 - Milestone 16: rgba alpha-encoded colour intensity for rhyme cluster view.
 - Milestone 17: *deferred / optional* — boundary-free phoneme-stream detection; its one
