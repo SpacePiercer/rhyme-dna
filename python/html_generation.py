@@ -497,4 +497,173 @@ body {{ font-family: Arial; font-size: 18px; line-height: 1.8; }}
         f.write(full_html)
 
     print("HTML file generated:", output_file)
-    
+
+
+# ---------------------------------------------------------------------------
+# Per-syllable rendering (Milestone 13)
+# ---------------------------------------------------------------------------
+
+def filter_syllable_clusters(labels, syllable_units, min_phonemes=2):
+    """Pick the syllable clusters worth colouring (render-time quality gate).
+
+    Mirrors filter_clusters but counts *syllable* units instead of words. A
+    syllable is a "deep" member if it has at least min_phonemes sounds, so a
+    bare-vowel syllable (e.g. "I" = aj) stays in its cluster for rendering but
+    neither props up nor blocks the gate. A cluster passes if it has either
+    >= 2 deep members across >= 2 lines, or >= 3 deep members total.
+
+    Parameters
+    ----------
+    labels : dict
+        unit_id (str) -> cluster label (str), from cluster_rhymes on the
+        syllable matrix.
+    syllable_units : list of dict
+        Output of extract_syllable_candidates().
+    min_phonemes : int
+        Minimum syllable depth to count as a deep member. Default 2.
+
+    Returns
+    -------
+    set of str
+        The cluster labels that pass.
+    """
+    label_to_deep_units = {}
+    label_to_deep_lines = {}
+
+    for u in syllable_units:
+        label = labels.get(u["unit_id"])
+        if label is None:
+            continue
+        label_to_deep_units.setdefault(label, set())
+        label_to_deep_lines.setdefault(label, set())
+        if len(u["phonemes"]) >= min_phonemes:
+            label_to_deep_units[label].add(u["unit_id"])
+            label_to_deep_lines[label].add(u["line_index"])
+
+    passing = set()
+    for label in label_to_deep_units:
+        deep = len(label_to_deep_units[label])
+        lines = len(label_to_deep_lines[label])
+        if (deep >= 2 and lines >= 2) or deep >= 3:
+            passing.add(label)
+    return passing
+
+
+def generate_syllable_html(
+    syllable_units,
+    labels,
+    output_file="generated_html/syllable_visualization.html",
+    min_phonemes=2,
+    debug=False,
+):
+    """Render the lyrics with each SYLLABLE coloured by its cluster (M13).
+
+    Unlike generate_rhyme_html (one colour per word), a multi-syllable word can
+    wear several colours — one per syllable's cluster — which is the literal
+    "Verse DNA" texture. Only clusters that pass filter_syllable_clusters are
+    coloured; every other syllable renders as plain text. The per-syllable
+    character spans come from the IPA-aware aligner (find_syllable_spans).
+
+    Parameters
+    ----------
+    syllable_units : list of dict
+        Output of extract_syllable_candidates().
+    labels : dict
+        unit_id (str) -> cluster label (str).
+    output_file : str
+        Path to write the HTML file to.
+    min_phonemes : int
+        Minimum syllable depth for a cluster to colour. Default 2.
+    debug : bool
+        If True, print which clusters passed and failed the filter.
+
+    Returns
+    -------
+    str
+        The full HTML document written to output_file (also returned so callers
+        and tests can inspect it without reading the file back).
+    """
+    passing_labels = filter_syllable_clusters(labels, syllable_units, min_phonemes)
+
+    if debug:
+        all_labels = set(labels.values())
+        blocked = all_labels - passing_labels
+        print(f"[SYL HTML] Passing clusters: {sorted(passing_labels)}")
+        print(f"[SYL HTML] Blocked clusters: {sorted(blocked)}")
+
+    # --- colours ---
+    colors = [
+        "#ffcccc", "#cce5ff", "#ccffcc",
+        "#ffe6cc", "#ffffcc", "#e6ccff",
+        "#ffd6e7", "#ccfff5", "#e6f2ff",
+    ]
+    sorted_labels = sorted(passing_labels)
+    cluster_colors = {
+        label: colors[i % len(colors)]
+        for i, label in enumerate(sorted_labels)
+    }
+    css_rules = [
+        f".syl-{label} {{ background-color: {color}; border-radius: 3px; padding: 1px 2px; }}"
+        for label, color in cluster_colors.items()
+    ]
+    css_block = "\n".join(css_rules)
+
+    # --- group syllable units by line, then by word position within the line ---
+    lines_dict = {}
+    for u in syllable_units:
+        line_index = u["line_index"]
+        slot = lines_dict.setdefault(
+            line_index, {"line_text": u["line_text"], "words": {}}
+        )
+        slot["words"].setdefault(u["word_index"], []).append(u)
+
+    # --- render each line ---
+    html_lines = []
+    for line_index in sorted(lines_dict.keys()):
+        slot = lines_dict[line_index]
+        words = slot["line_text"].split()
+        rendered_words = []
+
+        for word_index, word in enumerate(words):
+            units = slot["words"].get(word_index)
+            if not units:
+                rendered_words.append(word)
+                continue
+
+            units = sorted(units, key=lambda u: u["syllable_index"])
+            word_phonemes = units[0]["word_phonemes"]
+            ranges = [(u["phoneme_start"], u["phoneme_end"]) for u in units]
+            spans = find_syllable_spans(word, word_phonemes, ranges)
+
+            pieces = []
+            for u, (start, end) in zip(units, spans):
+                piece = word[start:end]
+                label = labels.get(u["unit_id"])
+                if label in passing_labels:
+                    pieces.append(f'<span class="syl-{label}">{piece}</span>')
+                else:
+                    pieces.append(piece)
+            rendered_words.append("".join(pieces))
+
+        html_lines.append(" ".join(rendered_words))
+
+    html_content = "<br>\n".join(html_lines)
+
+    full_html = f"""<html>
+<head>
+<title>Verse DNA Syllable Visualization</title>
+<style>
+body {{ font-family: Arial; font-size: 18px; line-height: 1.8; }}
+{css_block}
+</style>
+</head>
+<body>
+{html_content}
+</body>
+</html>"""
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write(full_html)
+
+    print("Syllable HTML file generated:", output_file)
+    return full_html

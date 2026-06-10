@@ -9,8 +9,11 @@ from python.html_generation import (
     filter_clusters,
     align_phonemes_to_chars,
     find_syllable_spans,
+    filter_syllable_clusters,
+    generate_syllable_html,
 )
 from python.syllabification import syllabify
+from python.rhyme_extraction import extract_syllable_candidates
 
 
 def _cand(word, ru, line):
@@ -70,6 +73,72 @@ def test_two_syllable_split_is_sensible():
     word, phon = "poker", ["p", "oː", "k", "ə"]
     spans = find_syllable_spans(word, phon, _ranges(syllabify(phon)))
     assert [word[a:b] for a, b in spans] == ["po", "ker"]
+
+
+# --- per-syllable cluster filter + rendering (Milestone 13) ---
+
+def _syl(unit_id, line, depth):
+    return {
+        "unit_id": unit_id,
+        "line_index": line,
+        "phonemes": ["x"] * depth,
+    }
+
+
+def test_filter_passes_cross_line_pair():
+    units = [_syl("0:0:0", 0, 3), _syl("1:0:0", 1, 3)]
+    labels = {"0:0:0": "A", "1:0:0": "A"}
+    assert filter_syllable_clusters(labels, units) == {"A"}
+
+
+def test_filter_blocks_singleton_and_same_line_pair():
+    # singleton
+    assert filter_syllable_clusters({"0:0:0": "A"}, [_syl("0:0:0", 0, 3)]) == set()
+    # two deep but one line -> no spread, fewer than 3 -> blocked
+    units = [_syl("0:0:0", 0, 3), _syl("0:1:0", 0, 3)]
+    labels = {"0:0:0": "A", "0:1:0": "A"}
+    assert filter_syllable_clusters(labels, units) == set()
+
+
+def test_bare_vowel_syllable_does_not_count_as_deep():
+    # one deep + one shallow (depth 1) on different lines -> only 1 deep -> blocked
+    units = [_syl("0:0:0", 0, 3), _syl("1:0:0", 1, 1)]
+    labels = {"0:0:0": "A", "1:0:0": "A"}
+    assert filter_syllable_clusters(labels, units) == set()
+
+
+def test_multisyllable_word_wears_two_colours(tmp_path):
+    # explosive -> ex·plo·sive ; put "plo" in cluster P (with load) and "sive" in
+    # cluster S (with tip), each spanning two lines so both clusters pass. The
+    # rendered "explosive" must therefore carry BOTH colour classes.
+    phon = {
+        "explosive": ["ɛ", "k", "s", "p", "l", "o", "s", "i", "v"],
+        "load": ["l", "əw", "d"],
+        "tip": ["ʈ", "ɪ", "p"],
+    }
+    lyrics = tmp_path / "lyrics.txt"
+    lyrics.write_text("explosive\nload\ntip\n", encoding="utf-8")
+    units = extract_syllable_candidates(str(lyrics), phon, detection_mode="full_line")
+
+    labels = {}
+    for u in units:
+        if u["source_word"] == "load":
+            labels[u["unit_id"]] = "P"
+        elif u["source_word"] == "tip":
+            labels[u["unit_id"]] = "S"
+        elif u["source_word"] == "explosive" and u["syllable_index"] == 1:
+            labels[u["unit_id"]] = "P"      # "plo"
+        elif u["source_word"] == "explosive" and u["syllable_index"] == 2:
+            labels[u["unit_id"]] = "S"      # "sive"
+
+    out = tmp_path / "syl.html"
+    html = generate_syllable_html(units, labels, output_file=str(out))
+
+    explosive_line = html.split("<body>")[1].split("<br>")[0]
+    assert 'class="syl-P"' in explosive_line
+    assert 'class="syl-S"' in explosive_line
+    # the unlabelled onset "ex" stays outside any coloured span
+    assert explosive_line.strip().startswith("ex")
 
 
 def test_shallow_member_does_not_block_deep_cluster():
