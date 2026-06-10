@@ -110,6 +110,169 @@ def find_rhyme_suffix_span(word, phonemes, rhyme_unit):
     return (0, len(word_lower))
 
 
+# ---------------------------------------------------------------------------
+# IPA-aware grapheme aligner (Milestone 13)
+# ---------------------------------------------------------------------------
+# find_rhyme_suffix_span above is ARPAbet-keyed; on english_mfa IPA input it
+# silently falls back to one-char-per-phoneme. The syllable engine needs
+# accurate *per-syllable* character spans (a multi-syllable word wears several
+# colours), so this aligner maps each english_mfa IPA symbol to the grapheme(s)
+# it commonly spells. Keys cover the 55-symbol inventory observed in the verse
+# (stress-mark-free; english_mfa emits no stress digits). Each phoneme greedily
+# consumes the longest matching grapheme run; the cumulative character positions
+# become syllable boundaries. As with the ARPAbet aligner, the goal is good
+# *boundaries*, not perfect spelling — unmatched sounds advance one character so
+# alignment always makes progress and never crashes.
+_IPA_TO_GRAPHEMES = {
+    # --- vowels & diphthongs ---
+    "a":  ["a", "o", "u", "e"],
+    "aj": ["igh", "uy", "ie", "ai", "ay", "i", "y"],
+    "aw": ["ough", "ow", "ou"],
+    "e":  ["eigh", "ea", "ay", "ai", "ey", "ei", "a"],
+    "eː": ["ai", "ay", "ei", "a"],
+    "i":  ["ee", "ea", "ie", "i", "e", "y"],
+    "o":  ["oa", "ow", "o"],
+    "ow": ["oa", "ow", "o"],
+    "oː": ["oa", "ough", "ow", "o"],
+    "æ":  ["a"],
+    "ɐ":  ["u", "o", "a"],
+    "ɑ":  ["a", "o", "y"],
+    "ɒ":  ["augh", "au", "ou", "a", "o"],
+    "ə":  ["er", "ar", "ah", "re", "ou", "a", "e", "o", "u"],
+    "əw": ["oe", "ough", "ou", "ow", "oa", "o"],
+    "ɛ":  ["ea", "e", "a"],
+    "ɛː": ["ere", "air", "are", "ai", "e"],
+    "ɪ":  ["i", "e", "y", "a"],
+    "ʉː": ["ew", "oo", "wo", "u", "o"],
+    "ʊ":  ["oo", "ou", "u"],
+    # --- consonants ---
+    "b":  ["bb", "b"],
+    "c":  ["ck", "c", "k"],
+    "d":  ["dd", "d"],
+    "dʒ": ["dg", "ge", "j", "g"],
+    "d̪": ["th", "dd", "d"],
+    "f":  ["ff", "ph", "f"],
+    "fʲ": ["ff", "f"],
+    "h":  ["h"],
+    "j":  ["y"],
+    "k":  ["ck", "ch", "k", "c", "q"],
+    "l":  ["ll", "l"],
+    "m":  ["mm", "m"],
+    "mʲ": ["mm", "m"],
+    "n":  ["kn", "nn", "n"],
+    "p":  ["pp", "p"],
+    "s":  ["ss", "s", "c"],
+    "t":  ["tt", "t"],
+    "tʃ": ["tch", "ch", "t"],
+    "tʲ": ["tt", "t"],
+    "t̪": ["th", "tt", "t"],
+    "v":  ["v"],
+    "z":  ["zz", "s", "z"],
+    "ç":  ["h"],
+    "ð":  ["th"],
+    "ŋ":  ["ng", "n"],
+    "ɖ":  ["dd", "d"],
+    "ɟ":  ["g", "gu"],
+    "ɫ":  ["ll", "l"],
+    "ɹ":  ["wr", "rr", "r"],
+    "ʃ":  ["sh", "ti", "ci", "ss", "s"],
+    "ʈ":  ["tt", "t"],
+    "ʋ":  ["wh", "w", "v"],
+    "ʎ":  ["ll", "l"],
+    "θ":  ["th"],
+    # "spn" (MFA's spoken-noise token) is intentionally absent: it has no
+    # grapheme, so it falls through to the one-char fallback.
+}
+
+
+def align_phonemes_to_chars(word, phonemes):
+    """Map a word's phonemes to character boundary positions (IPA-aware).
+
+    Walks the word string left-to-right, letting each phoneme greedily consume
+    the longest grapheme it commonly spells (see _IPA_TO_GRAPHEMES). Returns the
+    cumulative character offset *before* each phoneme plus a final offset at the
+    word end, so boundaries[k] is where phoneme k starts and boundaries[k+1]
+    where it ends.
+
+    Parameters
+    ----------
+    word : str
+        The surface word string.
+    phonemes : list of str
+        The word's full IPA phoneme list (english_mfa tokens).
+
+    Returns
+    -------
+    list of int
+        len(phonemes) + 1 monotonic character offsets; first is 0, last is
+        len(word). A safe, always-progressing fallback handles silent letters
+        and unrecognised symbols.
+    """
+    word_lower = word.lower()
+    n = len(phonemes)
+    boundaries = [0] * (n + 1)
+
+    pos = 0
+    for i, phoneme in enumerate(phonemes):
+        boundaries[i] = pos
+        key = phoneme.lstrip("ˈˌ")
+        candidates = _IPA_TO_GRAPHEMES.get(key, [])
+
+        matched = False
+        for grapheme in sorted(candidates, key=len, reverse=True):
+            if word_lower[pos:].startswith(grapheme):
+                pos += len(grapheme)
+                matched = True
+                break
+
+        # Unknown symbol or no spelling matched here: consume one character so
+        # alignment keeps moving (silent letters, MFA noise tokens, edge cases).
+        if not matched and pos < len(word_lower):
+            pos += 1
+
+    boundaries[n] = len(word_lower)
+
+    # Guard monotonicity: a late phoneme that ran past the word end must not
+    # produce a boundary beyond len(word) (clamp), and boundaries never go back.
+    for i in range(1, n + 1):
+        if boundaries[i] < boundaries[i - 1]:
+            boundaries[i] = boundaries[i - 1]
+        if boundaries[i] > len(word_lower):
+            boundaries[i] = len(word_lower)
+
+    return boundaries
+
+
+def find_syllable_spans(word, word_phonemes, syllable_ranges):
+    """Return one (start_char, end_char) span per syllable within `word`.
+
+    Parameters
+    ----------
+    word : str
+        The surface word string.
+    word_phonemes : list of str
+        The word's full IPA phoneme list.
+    syllable_ranges : list of (int, int)
+        Each syllable's [phoneme_start, phoneme_end) range within word_phonemes
+        (the phoneme_start / phoneme_end fields from extract_syllable_candidates).
+
+    Returns
+    -------
+    list of (int, int)
+        Character spans, one per syllable, tiling the word with no gaps. The
+        last span always reaches len(word) so trailing silent letters (e.g. the
+        final "e" in *give*) stay attached to the last syllable.
+    """
+    boundaries = align_phonemes_to_chars(word, word_phonemes)
+    n = len(word_phonemes)
+    spans = []
+    for start_ph, end_ph in syllable_ranges:
+        start_ph = max(0, min(start_ph, n))
+        end_ph = max(start_ph, min(end_ph, n))
+        spans.append((boundaries[start_ph], boundaries[end_ph]))
+    return spans
+
+
 def filter_clusters(clusters, rhyme_candidates, min_phonemes=2):
     """
     Filter clusters to only those worth rendering.
