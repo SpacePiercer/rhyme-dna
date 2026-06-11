@@ -69,13 +69,13 @@ The notebook (`rhyme-DNA.ipynb`) is available in the project repo — look it up
 ## Rule 5 — Record decisions and progress at milestone completion
 
 When a milestone is finished, append a new section to the decision-log note
-(`rhyme-dna/decisions`, source file `DECISIONS.md`) describing what was built, what
+(`rhyme-dna/decisions`, source file `docs/DECISIONS.md`) describing what was built, what
 decisions were made, and why. This becomes the context for the next chat. Update it via
-basic-memory (`write_note` / `edit_note`) or by editing `DECISIONS.md` directly — it is
+basic-memory (`write_note` / `edit_note`) or by editing `docs/DECISIONS.md` directly — it is
 the source file behind the note, and basic-memory re-indexes it on sync.
 
 Also mark the completed milestone as `[x]` in the roadmap note (`rhyme-dna/roadmap`,
-source file `ROADMAP.md`).
+source file `docs/ROADMAP.md`).
 
 ## Rule 6 — Tests with every change
 
@@ -110,7 +110,7 @@ I am not a linguist and not a domain expert. Write for a general audience:
 - Never assume I know jargon, abbreviations, or symbols (IPA characters, feature
   names, etc.) — spell them out the first time they come up.
 - **Checkmark exemption:** terms marked with a leading `✓` in the glossary note
-  (`rhyme-dna/glossary`, source file `GLOSSARY.md`) are ones
+  (`rhyme-dna/glossary`, source file `docs/GLOSSARY.md`) are ones
   I have explicitly told you I understand. Do **not** re-explain a ✓ term inline (no
   bracketed definition) — treat it as known. Unmarked terms still get the bracket
   treatment above. When I tell you I understand a term, add the `✓` to its glossary
@@ -143,7 +143,7 @@ decision is correct, without needing to read the implementation.
 
 ## Rule 10 — Maintain the glossary and decision backlog
 
-The project keeps a glossary note (`rhyme-dna/glossary`, source file `GLOSSARY.md`) with
+The project keeps a glossary note (`rhyme-dna/glossary`, source file `docs/GLOSSARY.md`) with
 two parts: (A) a plain-language dictionary of every domain-specific term, and (B) a dated
 backlog of measurement/linguistic decisions.
 

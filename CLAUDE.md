@@ -40,8 +40,8 @@ than reading raw files:
    milestone you are about to begin
 
 If the basic-memory MCP tools are unavailable in a session, fall back to reading the same
-content from the source files in the repo (`DECISIONS.md`, `ROADMAP.md`, `GLOSSARY.md`,
-`LESSONS.md`) — they are the markdown behind these notes.
+content from the source files in the repo (`docs/DECISIONS.md`, `docs/ROADMAP.md`,
+`docs/GLOSSARY.md`, `docs/LESSONS.md`) — they are the markdown behind these notes.
 
 ---
 
@@ -56,8 +56,8 @@ The system is English-only while MFA + ARPAbet is in use. Music analysis (tonali
 tempo, etc.) is explicitly out of scope until the lyrics engine is mature.
 
 All architectural decisions and their reasoning live in the decision-log note
-(`rhyme-dna/decisions`, source file `DECISIONS.md`). The forward-looking milestone plan
-lives in the roadmap note (`rhyme-dna/roadmap`, source file `ROADMAP.md`).
+(`rhyme-dna/decisions`, source file `docs/DECISIONS.md`). The forward-looking milestone
+plan lives in the roadmap note (`rhyme-dna/roadmap`, source file `docs/ROADMAP.md`).
 
 ---
 
@@ -94,9 +94,9 @@ Use the format `class(number)-short-description` for branches and
 
 | Class | Use for | Numbered by |
 |---|---|---|
-| `milestone` | implementing a milestone from ROADMAP.md | milestone number |
+| `milestone` | implementing a milestone from `docs/ROADMAP.md` | milestone number |
 | `docs` | changes to planning or documentation files only (no code) | sequential from 1 |
-| `glossary` | updates to `GLOSSARY.md` (terms + decision backlog); merged *after* the related milestone (see Rule 10 in `CONSTITUTION.md`) | sequential from 1 |
+| `glossary` | updates to `docs/GLOSSARY.md` (terms + decision backlog); merged *after* the related milestone (see Rule 10 in `CONSTITUTION.md`) | sequential from 1 |
 | `fix` | bug fix | sequential from 1 |
 | `refactor` | restructuring existing code without changing behaviour | sequential from 1 |
 | `chore` | maintenance — config, tooling, dependencies | sequential from 1 |
