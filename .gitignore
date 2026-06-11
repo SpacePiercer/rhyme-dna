@@ -11,18 +11,18 @@ _debug_*.txt
 # Local reference articles (research reading, not tracked)
 _article_*
 
-# Instruction/documentation files
-#textfiles/
+# Local installers
+miniconda.exe
 
-# Per-song data artifacts are now TRACKED (private repo) so they survive pulls and
-# the pipeline stays reproducible. Previously gitignoring input/ output/ m4a/ caused
-# the working-tree copies to be deleted on pull (they were git rm --cached'd in
-# chore(2)); restored and un-ignored in chore(4).
-# generated_html/ is a regenerable pipeline output — gitignored. Safe to ignore
-# (unlike the inputs above): if a pull deletes the working copy, the next notebook
-# run rebuilds it. View it locally; it is no longer kept in the repo.
-#full_songs/
-generated_html/
+# Per-song data artifacts (now under data/ since chore(7)) are TRACKED (private
+# repo) so they survive pulls and the pipeline stays reproducible. Previously
+# gitignoring input/ output/ m4a/ caused the working-tree copies to be deleted on
+# pull (they were git rm --cached'd in chore(2)); restored and un-ignored in
+# chore(4).
+# data/generated_html/ is a regenerable pipeline output — gitignored. Safe to
+# ignore (unlike the inputs above): if a pull deletes the working copy, the next
+# notebook run rebuilds it. View it locally; it is not kept in the repo.
+data/generated_html/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

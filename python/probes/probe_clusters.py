@@ -7,7 +7,7 @@ the position-aware detector (M17 — see `windowed_linkage`).
 
 Run from the repo root as a module:
     conda run -n mfa_env python -m python.probes.probe_clusters
-(reads the live TextGrid + lyrics under input/ and output/).
+(reads the live TextGrid + lyrics under data/input/ and data/output/).
 """
 from praatio import textgrid
 
@@ -16,8 +16,8 @@ from python.rhyme_extraction import extract_rhyme_candidates
 from python.similarity_engine import compute_similarity_pairs, build_similarity_matrix
 from python.clustering import cluster_rhymes, get_threshold
 
-TG = "output/current_output/input.TextGrid"
-LYRICS = "input/current_input/input.txt"
+TG = "data/output/current_output/input.TextGrid"
+LYRICS = "data/input/current_input/input.txt"
 RHYME_MODE = "stressed"
 DETECTION_MODE = "full_line"
 

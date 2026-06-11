@@ -85,10 +85,9 @@ conda run -n mfa_env python -m pytest python/tests -q
 |---|---|
 | `python/` | core pipeline modules (`similarity_engine`, `clustering`, `rhyme_extraction`, `html_generation`, …) + `tests/` + `probes/` |
 | `rhyme-DNA.ipynb` | the notebook driving the pipeline (no logic in cells) |
-| `docs/` | governance docs (see index below) |
+| `docs/` | governance docs (see index below), plus `archive/` (legacy planning texts) and `research/` (local reading, untracked) |
 | `progress/` | rolling per-day session log |
-| `input/`, `output/`, `data/`, `m4a/`, `full_songs/`, `textfiles/` | per-song audio, lyrics, and alignment artifacts |
-| `generated_html/` | regenerable HTML output (gitignored) |
+| `data/` | everything per-song: `input/` (lyrics + wav), `output/` (TextGrids), `m4a/`, `full_songs/`, `scored_pairs.jsonl`, and regenerable `generated_html/` (gitignored) |
 
 ## Documentation index
 
