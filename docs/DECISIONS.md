@@ -644,6 +644,61 @@ clustering at c = 0.3
   average-linkage: 17 words = 11/11 target + 6 more genuine short-i matches -> shipped
 ```
 
+### Milestone 13 — Syllable Engine (IN PROGRESS)
+
+**Status (2026-06-09):** slices 1–3 plus the clustering plumbing are committed on
+`m13-syllable-engine`; slice 4 (clustering + per-syllable HTML) is in progress. This
+section records the slice-4 sign-off decisions ahead of completion; it will be folded
+into a final M13 section per Rule 5 when the milestone closes.
+
+**Built so far (slices 1–3 + clustering plumbing):**
+
+- `python/syllabification.py` — `syllabify()`, a maximal-onset splitter driven by
+  panphon's IPA-native sonority. Nuclei are found with `_is_ipa_vowel` (so diphthongs
+  like `aj`/`aw` stay one nucleus); the `ONSET_SONORITY_STRICT` knob controls how
+  greedily onsets absorb consonants (M20-tunable).
+- `extract_syllable_candidates()` in `rhyme_extraction.py` — emits one unit per
+  syllable, each with a back-pointer to its source word, the word's full phoneme list,
+  and the syllable's `[phoneme_start, phoneme_end)` range (for the colour-span aligner).
+- `syllable_similarity()` in `similarity_engine.py` — role-aware panphon weighted
+  feature edit distance: onset weight `o = 0`, nucleus `1.0`, coda `0.3`; a substitution
+  uses the larger of the two aligned roles' weights. Normalised by `maxlen` (raw segment
+  count) for now — see decision 3.
+- `compute_syllable_pairs()` / `build_syllable_matrix()` — keyed by each syllable's
+  `unit_id` (a word contributes several syllables, and the same shape recurs across
+  words, so the word string is no longer a usable key). The matrix feeds
+  `cluster_rhymes` unchanged.
+
+**Slice-4 sign-off decisions (2026-06-09 session):**
+
+1. **Parallel notebook wiring.** The word-based path (Sections 4–7) and the M19a passive
+   logging in Section 5 (3,422 word-pairs → `data/scored_pairs.jsonl`) stay **untouched**.
+   The syllable engine is added as **new cells** and becomes the new *primary*
+   visualization, running alongside the word path rather than replacing it.
+
+2. **Full IPA-aware aligner.** The existing `find_rhyme_suffix_span` is ARPAbet-keyed and
+   silently falls back to one-char-per-phoneme on IPA input (spans already approximate).
+   Slice 4 builds a proper IPA phoneme→letter aligner for accurate **per-syllable** colour
+   spans, so a multi-syllable word can wear several colours, one per syllable's cluster.
+   This is also groundwork for the M15 DNA view.
+
+3. **Normalisation: ship on `maxlen`, measure before switching.** The more principled
+   denominator is the **effective (weighted) length**
+   `eff_len = #onset_segs × o + #nucleus_segs × nuc + #coda_segs × c`, with a pair
+   denominator of `max(eff_len(A), eff_len(B))`. It removes onset-length inflation —
+   worked example: `strick` vs `ip` scores `1 − 0.45/5 = 0.91` and `tick` vs `ip` scores
+   `1 − 0.45/3 = 0.85` under `maxlen`, but both collapse to `1 − 0.45/1.3 = 0.654` under
+   effective length. **Decision (option a):** run slice 4 on `maxlen`, dump the verse's
+   real pairwise score distribution, and adopt effective length **only if it changes the
+   clusters** — then as an isolated change with a divide-by-zero guard (eff_len can be 0)
+   and a threshold re-sweep. Swap-ready for M20 either way.
+   - Caveats noted for the effective-length option: panphon's substitution cost is
+     unbounded, so a smaller denominator floors weak pairs at 0 harder; the method-D
+     delete penalty (0.75) does not equal the nucleus budget (1.0); and clusters are
+     decided by average-linkage at a swept threshold, which cares about the *ordering* of
+     rhyme vs non-rhyme pairs, not their absolute values — so the inflation only flips
+     orderings when comparing pairs with very different onset lengths.
+
 ---
 
 ## Architectural decision: move to IPA + panphon (agreed before Milestone 10)
