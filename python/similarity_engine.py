@@ -229,8 +229,13 @@ def syllable_similarity(
     nucleus (NUCLEUS_WEIGHT, 1.0), coda (CODA_WEIGHT, 0.3). For a substitution
     that aligns two segments, the larger of the two role weights is used (so a
     vowel always pulls full weight, and two onsets together pull none). The
-    total is normalised by the longer syllable's segment count and subtracted
-    from 1.
+    total is normalised by the longer syllable's **effective (weighted) length**
+    — each segment counted by its role weight — and subtracted from 1. Weighting
+    the denominator the same way as the costs stops a long onset (weight 0) from
+    inflating the score: *strick* (str·ɪ·k) and *tick* (t·ɪ·k) both score the
+    same against *ip*, instead of the longer onset leaking in a higher number.
+    Chosen over raw segment count by the M13 score-distribution measurement
+    (see python/probes/probe_syllable_scores.py).
 
     Parameters
     ----------
@@ -280,9 +285,18 @@ def syllable_similarity(
         cost = _DIST.weighted_substitution_cost(v1, v2)
         return cost * max(role_weight(r1), role_weight(r2))
 
-    maxlen = max(len(segA), len(segB))
+    def eff_len(segments):
+        # Effective (weighted) length: each segment counts by its role weight,
+        # so onset length (weight 0 by default) does not inflate the denominator.
+        # Zero-guard: an all-zero-weight syllable (e.g. an all-onset fragment with
+        # onset_weight 0) falls back to its raw segment count so we never divide
+        # by zero.
+        total = sum(role_weight(role) for _, role in segments)
+        return total if total > 0 else len(segments)
+
     distance = _DIST.min_edit_distance(id_cost, id_cost, sub_cost, [[]], segA, segB)
-    return max(0.0, 1.0 - distance / maxlen)
+    denom = max(eff_len(segA), eff_len(segB))
+    return max(0.0, 1.0 - distance / denom)
 
 
 def rhyme_similarity(rhymeA, rhymeB, mode="stressed"):

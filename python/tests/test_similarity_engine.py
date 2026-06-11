@@ -192,3 +192,28 @@ def test_coda_weight_zero_ignores_coda():
     assert syllable_similarity(
         CLIP, CLICK, onset_weight=0.0, coda_weight=0.0
     ) == pytest.approx(1.0, abs=1e-9)
+
+
+# --- effective-length normalisation (Milestone 13, decision 2026-06-09) ------
+
+STRICK = _syl(["s", "t", "ɹ", "ɪ", "k"])  # long onset str-, nucleus ɪ, coda k
+TICK = _syl(["t", "ɪ", "k"])              # short onset t-,  nucleus ɪ, coda k
+IP = _syl(["ɪ", "p"])                     # no onset, nucleus ɪ, coda p
+
+
+def test_onset_length_does_not_inflate_score():
+    # The denominator is effective (weighted) length, so the str-/t- onsets
+    # (weight 0) contribute nothing. strick and tick differ ONLY in onset length,
+    # so both must score identically against ip — no leakage from onset length.
+    assert syllable_similarity(STRICK, IP) == pytest.approx(
+        syllable_similarity(TICK, IP), abs=1e-9
+    )
+    assert 0.0 < syllable_similarity(TICK, IP) < 1.0   # graded coda mismatch
+
+
+def test_zero_weighted_length_syllable_does_not_crash():
+    # An all-onset fragment with the default onset_weight 0 has effective length
+    # 0; the zero-guard must fall back to raw segment count instead of dividing
+    # by zero.
+    all_onset = {"onset": ["s"], "nucleus": None, "coda": []}
+    assert syllable_similarity(all_onset, all_onset) == pytest.approx(1.0, abs=1e-9)
