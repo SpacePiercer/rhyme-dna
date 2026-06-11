@@ -6,7 +6,11 @@ the phoneme dictionary instead of being silently dropped.
 """
 import pytest
 
-from python.rhyme_extraction import _normalize_token, extract_rhyme_candidates
+from python.rhyme_extraction import (
+    _normalize_token,
+    extract_rhyme_candidates,
+    extract_syllable_candidates,
+)
 
 
 # --- token normalisation ----------------------------------------------------
@@ -66,3 +70,75 @@ def test_internal_apostrophe_word_resolves(tmp_path):
 
     found_words = {c["end_word"] for c in candidates}
     assert "i'm" in found_words
+
+
+# --- syllable units (Milestone 13) ------------------------------------------
+
+# Real english_mfa alignments (from the roadmap).
+_SYL_PHON = {
+    "explosive": ["ɛ", "k", "s", "p", "l", "o", "s", "i", "v"],  # ex·plo·sive
+    "clip": ["k", "l", "ɪ", "p"],                                  # one syllable
+}
+
+
+def test_syllable_candidates_emit_one_unit_per_syllable(tmp_path):
+    lyrics = tmp_path / "lyrics.txt"
+    lyrics.write_text("explosive clip\n", encoding="utf-8")
+
+    units = extract_syllable_candidates(
+        str(lyrics), _SYL_PHON, detection_mode="full_line"
+    )
+
+    # explosive (3 syllables) + clip (1) = 4 units
+    assert len(units) == 4
+    by_word = {}
+    for u in units:
+        by_word.setdefault(u["source_word"], []).append(u)
+    assert len(by_word["explosive"]) == 3
+    assert len(by_word["clip"]) == 1
+
+    nuclei = [u["nucleus"] for u in by_word["explosive"]]
+    assert nuclei == ["ɛ", "o", "i"]
+
+
+def test_syllable_unit_ids_are_unique(tmp_path):
+    lyrics = tmp_path / "lyrics.txt"
+    lyrics.write_text("explosive clip\nclip explosive\n", encoding="utf-8")
+
+    units = extract_syllable_candidates(str(lyrics), _SYL_PHON)
+    ids = [u["unit_id"] for u in units]
+    assert len(ids) == len(set(ids))
+
+
+def test_syllable_phoneme_ranges_tile_the_word(tmp_path):
+    lyrics = tmp_path / "lyrics.txt"
+    lyrics.write_text("explosive\n", encoding="utf-8")
+
+    units = extract_syllable_candidates(str(lyrics), _SYL_PHON)
+
+    # The syllables' [start, end) ranges must tile the word's phonemes exactly,
+    # in order, with no gaps or overlaps — this is what lets the render layer
+    # map each syllable back to a character span.
+    units = sorted(units, key=lambda u: u["syllable_index"])
+    offset = 0
+    rebuilt = []
+    for u in units:
+        assert u["phoneme_start"] == offset
+        assert u["word_phonemes"][u["phoneme_start"]:u["phoneme_end"]] == u["phonemes"]
+        offset = u["phoneme_end"]
+        rebuilt.extend(u["phonemes"])
+    assert rebuilt == _SYL_PHON["explosive"]
+
+
+def test_syllable_end_only_uses_last_word(tmp_path):
+    lyrics = tmp_path / "lyrics.txt"
+    lyrics.write_text("clip explosive\n", encoding="utf-8")
+
+    units = extract_syllable_candidates(
+        str(lyrics), _SYL_PHON, detection_mode="end_only"
+    )
+
+    # Only the line-final word 'explosive' contributes (3 syllables).
+    assert {u["source_word"] for u in units} == {"explosive"}
+    assert len(units) == 3
+    assert all(u["is_line_end"] for u in units)

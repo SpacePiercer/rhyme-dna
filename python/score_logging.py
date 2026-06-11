@@ -34,7 +34,9 @@ def scorer_config():
     from python import similarity_engine as se
     method = se.SIMILARITY_METHOD
     value = se.SIMILARITY_PENALTY if method == "D" else se.SIMILARITY_CAP
-    return {"method": method, "value": value, "coda_discount": se.CODA_DISCOUNT}
+    # Dataset key stays "coda_discount" (M19a schema is versioned); the constant
+    # it reads was renamed to CODA_WEIGHT in M13.
+    return {"method": method, "value": value, "coda_discount": se.CODA_WEIGHT}
 
 
 def _utc_now_iso():

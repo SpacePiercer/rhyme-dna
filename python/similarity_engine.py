@@ -36,16 +36,22 @@ SIMILARITY_METHOD = "D"
 SIMILARITY_PENALTY = 0.75   # used when SIMILARITY_METHOD == "D"
 SIMILARITY_CAP = 1.0        # used when SIMILARITY_METHOD == "C"
 
-# Coda-discount knob (Milestone 12 — assonance-first scoring).
-# Every consonant cost in the rhyme-unit edit distance (a consonant being
-# inserted, deleted, or substituted for another consonant) is multiplied by
-# this factor; vowel costs are left untouched. This makes the rhyme score
-# driven mainly by shared vowels (assonance), the way fast rap rhyme is heard.
-#   c = 1.0 -> consonants count fully          (pre-M12 behaviour)
-#   c = 0.0 -> consonants ignored entirely     (pure assonance)
-# Chosen by a sweep on the short-i verse; kept a swappable parameter so the
-# M20 learned-weights milestone can replace it without code changes.
-CODA_DISCOUNT = 0.3
+# Role weights (Milestone 12 coda discount, generalised by Milestone 13).
+# A syllable has three roles: onset (leading consonants), nucleus (the vowel),
+# and coda (trailing consonants). Each role scales its segments' edit cost:
+#   onset   -> ONSET_WEIGHT   (default 0.0 — onsets ignored for now)
+#   nucleus -> NUCLEUS_WEIGHT (1.0 — full weight; the vowel carries the rhyme)
+#   coda    -> CODA_WEIGHT    (0.3 — graded contribution; the M12 coda discount)
+# A weight of 1.0 counts a sound fully; 0.0 ignores it entirely. The coda weight
+# is the old "coda discount": it makes the score driven mainly by shared vowels
+# (assonance), the way fast rap rhyme is heard. With ONSET_WEIGHT = 0, *clip*
+# and *grip* score 1.0 (the kl-/gr- onsets are dropped) while their shared -ɪp
+# still matches. All three are swappable knobs for the M20 learned-weights
+# milestone. (The flat word-tail scorer rhyme_unit_similarity has no onset/coda
+# distinction, so it applies CODA_WEIGHT to every consonant.)
+ONSET_WEIGHT = 0.0
+NUCLEUS_WEIGHT = 1.0
+CODA_WEIGHT = 0.3
 
 
 def normalize_phoneme(p):
@@ -55,6 +61,28 @@ def normalize_phoneme(p):
     ˌ (secondary). These are stripped so comparisons are stress-agnostic.
     """
     return p.lstrip("ˈˌ")
+
+
+# IPA vowel characters found in english_mfa output. Used to locate syllable
+# nuclei (syllabification.py) and the rhyme anchor (rhyme_extraction.py). Lives
+# here, beside normalize_phoneme, as a shared phonology primitive so both
+# higher-level modules import it from one place (and avoid an import cycle).
+_IPA_VOWELS = {
+    'a', 'e', 'i', 'o', 'u',   # ASCII base vowels (covers diphthongs aj, aw, oj)
+    'ɑ', 'ɒ', 'ɐ',              # open back / near-open central
+    'æ',                        # near-open front
+    'ɛ', 'ɜ',                   # open-mid front / central
+    'ɪ',                        # near-close near-front
+    'ɔ',                        # open-mid back
+    'ʊ',                        # near-close near-back
+    'ʌ',                        # open-mid back unrounded
+    'ə',                        # schwa
+}
+
+
+def _is_ipa_vowel(phoneme):
+    """Return True if any character in this IPA phoneme is a vowel."""
+    return any(c in _IPA_VOWELS for c in normalize_phoneme(phoneme))
 
 
 def _token_to_vector(token):
@@ -134,11 +162,11 @@ def rhyme_unit_similarity(unitA, unitB, method=None, value=None, coda_discount=N
         Penalty (method "D") or cap (method "C"); defaults to the module
         config constant for the chosen method.
     coda_discount : float or None
-        Factor applied to consonant costs; defaults to module CODA_DISCOUNT.
+        Factor applied to consonant costs; defaults to module CODA_WEIGHT.
         1.0 reproduces the pre-M12 (consonants-count-fully) behaviour.
     """
     method = method or SIMILARITY_METHOD
-    c = CODA_DISCOUNT if coda_discount is None else coda_discount
+    c = CODA_WEIGHT if coda_discount is None else coda_discount
     a = "".join(normalize_phoneme(p) for p in unitA)
     b = "".join(normalize_phoneme(p) for p in unitB)
     va = _FM.word_to_vector_list(a, numeric=True)
@@ -164,6 +192,111 @@ def rhyme_unit_similarity(unitA, unitB, method=None, value=None, coda_discount=N
     maxlen = max(len(va), len(vb))
     distance = _DIST.min_edit_distance(id_cost, id_cost, sub_cost, [[]], va, vb)
     return max(0.0, 1.0 - distance / maxlen)
+
+
+def _syllable_segments(syllable):
+    """Yield (vector, role) pairs for each panphon segment of a syllable unit.
+
+    A syllable unit is a dict with 'onset' (list), 'nucleus' (str or None) and
+    'coda' (list). Each token is expanded into panphon feature vectors — a
+    diphthong nucleus such as "aw" becomes two segments, both tagged 'nucleus'.
+    Unrecognised tokens are skipped. Tagging every segment with its role lets the
+    edit-distance cost functions weight onsets, the nucleus, and the coda
+    differently (the heart of Milestone 13's role-aware scoring).
+    """
+    segments = []
+    parts = [(syllable["onset"], "onset")]
+    if syllable["nucleus"] is not None:
+        parts.append(([syllable["nucleus"]], "nucleus"))
+    parts.append((syllable["coda"], "coda"))
+
+    for tokens, role in parts:
+        for tok in tokens:
+            for v in _FM.word_to_vector_list(normalize_phoneme(tok), numeric=True):
+                segments.append((v, role))
+    return segments
+
+
+def syllable_similarity(
+    sylA, sylB, method=None, value=None,
+    onset_weight=None, nucleus_weight=None, coda_weight=None,
+):
+    """Score how strongly two SYLLABLES rhyme, in [0.0, 1.0] (Milestone 13).
+
+    Like rhyme_unit_similarity, this uses panphon's weighted feature edit
+    distance, but it is **role-aware**: each segment's cost is scaled by the
+    weight of its role in the syllable — onset (ONSET_WEIGHT, default 0),
+    nucleus (NUCLEUS_WEIGHT, 1.0), coda (CODA_WEIGHT, 0.3). For a substitution
+    that aligns two segments, the larger of the two role weights is used (so a
+    vowel always pulls full weight, and two onsets together pull none). The
+    total is normalised by the longer syllable's **effective (weighted) length**
+    — each segment counted by its role weight — and subtracted from 1. Weighting
+    the denominator the same way as the costs stops a long onset (weight 0) from
+    inflating the score: *strick* (str·ɪ·k) and *tick* (t·ɪ·k) both score the
+    same against *ip*, instead of the longer onset leaking in a higher number.
+    Chosen over raw segment count by the M13 score-distribution measurement
+    (see python/probes/probe_syllable_scores.py).
+
+    Parameters
+    ----------
+    sylA, sylB : dict
+        Syllable units (with 'onset', 'nucleus', 'coda'), e.g. from
+        syllabification.syllabify or rhyme_extraction.extract_syllable_candidates.
+    method : str or None
+        "D" or "C"; defaults to the module-level SIMILARITY_METHOD.
+    value : float or None
+        Penalty (method "D") or cap (method "C"); defaults to the module config.
+    onset_weight : float or None
+        Onset role weight; defaults to module ONSET_WEIGHT. 0 ignores onsets.
+    nucleus_weight : float or None
+        Nucleus role weight; defaults to module NUCLEUS_WEIGHT.
+    coda_weight : float or None
+        Coda role weight; defaults to module CODA_WEIGHT.
+    """
+    method = method or SIMILARITY_METHOD
+    o = ONSET_WEIGHT if onset_weight is None else onset_weight
+    nuc = NUCLEUS_WEIGHT if nucleus_weight is None else nucleus_weight
+    c = CODA_WEIGHT if coda_weight is None else coda_weight
+
+    segA = _syllable_segments(sylA)
+    segB = _syllable_segments(sylB)
+    if not segA or not segB:
+        return 0.0
+
+    base_id_cost = _insert_delete_cost(method, value)
+
+    def role_weight(role):
+        if role == "nucleus":
+            return nuc
+        if role == "onset":
+            return o
+        return c  # coda
+
+    def id_cost(elem):
+        # Insert/delete one segment: scale the flat penalty by its role weight.
+        vec, role = elem
+        return base_id_cost(vec) * role_weight(role)
+
+    def sub_cost(e1, e2):
+        # Align two segments: scale panphon's feature cost by the larger role
+        # weight, so a nucleus pulls full weight and two onsets pull none.
+        v1, r1 = e1
+        v2, r2 = e2
+        cost = _DIST.weighted_substitution_cost(v1, v2)
+        return cost * max(role_weight(r1), role_weight(r2))
+
+    def eff_len(segments):
+        # Effective (weighted) length: each segment counts by its role weight,
+        # so onset length (weight 0 by default) does not inflate the denominator.
+        # Zero-guard: an all-zero-weight syllable (e.g. an all-onset fragment with
+        # onset_weight 0) falls back to its raw segment count so we never divide
+        # by zero.
+        total = sum(role_weight(role) for _, role in segments)
+        return total if total > 0 else len(segments)
+
+    distance = _DIST.min_edit_distance(id_cost, id_cost, sub_cost, [[]], segA, segB)
+    denom = max(eff_len(segA), eff_len(segB))
+    return max(0.0, 1.0 - distance / denom)
 
 
 def rhyme_similarity(rhymeA, rhymeB, mode="stressed"):
@@ -222,4 +355,57 @@ def build_similarity_matrix(rhyme_candidates, similarity_pairs):
         matrix[wA][wB] = score
         matrix[wB][wA] = score
 
+    return matrix
+
+
+# ---------------------------------------------------------------------------
+# Syllable-unit scoring (Milestone 13)
+# ---------------------------------------------------------------------------
+# The syllable engine clusters syllable units (from
+# rhyme_extraction.extract_syllable_candidates), not words. These two helpers
+# mirror compute_similarity_pairs / build_similarity_matrix but key everything
+# on each syllable's unique unit_id (a word contributes several syllables, and
+# the same syllable shape recurs across words, so the word string is no longer a
+# usable key). The resulting matrix feeds clustering.cluster_rhymes unchanged.
+
+def compute_syllable_pairs(syllable_units, **scorer_kwargs):
+    """Score every pair of syllable units with syllable_similarity.
+
+    Parameters
+    ----------
+    syllable_units : list of dict
+        Syllable units (each with 'unit_id', 'onset', 'nucleus', 'coda').
+    **scorer_kwargs
+        Passed through to syllable_similarity (e.g. onset_weight, coda_weight).
+
+    Returns
+    -------
+    list of dict
+        Each with keys 'idA', 'idB', 'similarity'.
+    """
+    results = []
+    for a, b in itertools.combinations(syllable_units, 2):
+        score = syllable_similarity(a, b, **scorer_kwargs)
+        results.append({
+            "idA": a["unit_id"],
+            "idB": b["unit_id"],
+            "similarity": score,
+        })
+    return results
+
+
+def build_syllable_matrix(syllable_units, syllable_pairs):
+    """Build a similarity matrix keyed by syllable unit_id.
+
+    Diagonal is 1.0 (a unit is identical to itself); off-diagonal entries come
+    from syllable_pairs; any unscored pair defaults to 0.0.
+    """
+    ids = [u["unit_id"] for u in syllable_units]
+    matrix = {i: {j: 0.0 for j in ids} for i in ids}
+    for i in ids:
+        matrix[i][i] = 1.0
+    for pair in syllable_pairs:
+        a, b, score = pair["idA"], pair["idB"], pair["similarity"]
+        matrix[a][b] = score
+        matrix[b][a] = score
     return matrix
