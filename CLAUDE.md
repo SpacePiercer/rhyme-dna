@@ -245,6 +245,23 @@ begin implementation.
 discovering them mid-build. One grilling session at the start prevents multiple correction
 cycles later.
 
+### Rule 13 — Write a session summary to the progress log on close
+
+When I signal the end of a session — by saying "finished", "done", "closing", "wrapping up",
+or any equivalent — write a summary to the current day's file in `progress/` before stopping.
+If no entry exists for today, create one. The summary must cover:
+
+- **Session** — chat name and branch
+- **Decisions** — every decision made or signed off this session (copy from the Decisions
+  lists at the bottom of messages)
+- **Commits** — all commit hashes and their one-line messages created this session
+- **State** — what is complete, what is in progress, and any blockers or deferred items
+
+Do not ask for confirmation — write the file and then confirm it was written.
+
+**Why this exists:** the progress log is only useful if it is actually written. Tying it
+to the session-close signal ensures it never gets skipped.
+
 ---
 
 ## Running the notebook
