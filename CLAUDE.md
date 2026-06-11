@@ -20,6 +20,7 @@ The project's knowledge lives in the **basic-memory** knowledge base (project
 `rhyme-dna`), which indexes the governance notes in this repo. Retrieve from it rather
 than reading raw files:
 
+0. Invoke the `/caveman` skill immediately — every session runs in compressed communication mode
 1. Read this file (`CLAUDE.md`) — the standing rules (auto-loaded each session)
 2. `read_note "rhyme-dna/decisions"` — the decision log: what has been built and why
 3. `read_note "rhyme-dna/roadmap"` — identify the next incomplete milestone (the first
@@ -27,7 +28,9 @@ than reading raw files:
 4. `read_note "rhyme-dna/glossary"` — domain-term dictionary and the decision backlog
 5. `read_note "rhyme-dna/lessons"` — mistakes already made and corrected
 6. `search_notes "<milestone topic>"` — find KB notes relevant to the upcoming milestone
-7. Confirm you are ready with a brief recap: current state of the project, and the
+7. Scan `progress/` folder — read all `.md` entries (excluding `README.md`) whose filename
+   date falls within the last 10 days of today's date; these give recent session context
+8. Confirm you are ready with a brief recap: current state of the project, and the
    milestone you are about to begin
 
 If the basic-memory MCP tools are unavailable in a session, fall back to reading the same
@@ -230,6 +233,34 @@ genuinely involved no decisions, write "Decisions: none this message."
 
 **Why this exists:** I steer the direction of this project. Seeing every pending decision
 in one place, in plain terms, is how I stay in control and catch wrong turns early.
+
+### Rule 12 — Grill-me before starting a milestone
+
+Before writing any code or making any changes on a new milestone, invoke the `/grill-me`
+skill to stress-test the milestone plan with me. Work through the plan together — surface
+assumptions, edge cases, and scope questions — until we both agree it is solid. Only then
+begin implementation.
+
+**Why this exists:** catching wrong assumptions before implementation is far cheaper than
+discovering them mid-build. One grilling session at the start prevents multiple correction
+cycles later.
+
+### Rule 13 — Write a session summary to the progress log on close
+
+When I signal the end of a session — by saying "finished", "done", "closing", "wrapping up",
+or any equivalent — write a summary to the current day's file in `progress/` before stopping.
+If no entry exists for today, create one. The summary must cover:
+
+- **Session** — chat name and branch
+- **Decisions** — every decision made or signed off this session (copy from the Decisions
+  lists at the bottom of messages)
+- **Commits** — all commit hashes and their one-line messages created this session
+- **State** — what is complete, what is in progress, and any blockers or deferred items
+
+Do not ask for confirmation — write the file and then confirm it was written.
+
+**Why this exists:** the progress log is only useful if it is actually written. Tying it
+to the session-close signal ensures it never gets skipped.
 
 ---
 
