@@ -349,7 +349,7 @@ def filter_clusters(clusters, rhyme_candidates, min_phonemes=2):
 def generate_rhyme_html(
     rhyme_candidates,
     clusters,
-    output_file="generated_html/rhyme_visualization.html",
+    output_file="data/generated_html/rhyme_visualization.html",
     detection_mode="end_only",
     min_phonemes=2,
     debug=False
@@ -552,7 +552,7 @@ def filter_syllable_clusters(labels, syllable_units, min_phonemes=2):
 def generate_syllable_html(
     syllable_units,
     labels,
-    output_file="generated_html/syllable_visualization.html",
+    output_file="data/generated_html/syllable_visualization.html",
     min_phonemes=2,
     debug=False,
 ):

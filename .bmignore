@@ -15,12 +15,8 @@
 
 python/
 data/
-input/
-output/
-m4a/
-full_songs/
-generated_html/
-textfiles/
+docs/archive/
+docs/research/
 *.ipynb
 *.exe
 *.pdf

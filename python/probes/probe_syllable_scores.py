@@ -40,8 +40,8 @@ from python.similarity_engine import (
 )
 from python.clustering import cluster_rhymes
 
-INPUT_TXT_PATH = "input/current_input/input.txt"
-OUTPUT_TEXTGRID_PATH = "output/current_output/input.TextGrid"
+INPUT_TXT_PATH = "data/input/current_input/input.txt"
+OUTPUT_TEXTGRID_PATH = "data/output/current_output/input.TextGrid"
 
 
 def build_word_to_phonemes():
