@@ -66,6 +66,22 @@ This initial version is the one-time bootstrap that rode with the rules introduc
   `l`, `r`).
 - **Place of articulation** — *where* in the mouth the sound is made (lips, teeth, roof
   of mouth, etc.).
+- **Sonority** — how loud, open, and "carrying" a sound is on its own, regardless of how
+  forcefully it's spoken. It ranks sounds on a scale: vowels are most sonorous (open and
+  ringing, like the *a* in *cat*), then glides (`w`, `j`), liquids (`l`), nasals (`n`),
+  fricatives (`s`), down to stops like `t`/`p`/`k` (a brief blocked pop, least sonorous).
+  panphon gives this score straight from IPA (vowel ≈ 9 … stop ≈ 1). A syllable is a
+  "sonority hill": it rises to a loud peak (the vowel) and falls — so peaks count the
+  syllables and valleys mark where to split them.
+- **Onset** — the consonant(s) at the *start* of a syllable, before the vowel. In *plot*
+  the onset is "pl". (The mirror image of the *coda*.)
+- **Maximal onset principle** — the rule for splitting a consonant cluster that sits
+  between two vowels: attach as many consonants as legally possible to the *start* of the
+  following syllable (its onset), leaving the rest as the previous syllable's coda. Using
+  sonority: the consonants that form a *rising run* toward the next vowel become its onset.
+  *explosive* `ɛ k s p l o s i v` → `ɛk·splo·siv` (the rising "pl" opens the middle
+  syllable). This is the IPA-native splitter built on panphon's sonority, replacing the
+  orthographic syllabipy (which can't read IPA vowels as syllable cores).
 - **Syllable** — a single beat of a word built around a vowel. *Water* has two
   syllables: "wa-ter".
 - **Coda** — the consonant(s) at the end of a syllable, after the vowel. In *mound*, the
