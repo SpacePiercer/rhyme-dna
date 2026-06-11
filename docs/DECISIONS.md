@@ -1,7 +1,7 @@
 ---
 title: DECISIONS
 type: note
-permalink: verse-dna/decisions
+permalink: rhyme-dna/decisions
 ---
 
 # Verse DNA — Decision Log

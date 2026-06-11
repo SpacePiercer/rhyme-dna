@@ -1,7 +1,7 @@
 ---
 title: ROADMAP
 type: note
-permalink: verse-dna/roadmap
+permalink: rhyme-dna/roadmap
 ---
 
 # ROADMAP.md — Verse DNA
