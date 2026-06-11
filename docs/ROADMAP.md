@@ -24,155 +24,40 @@ The next chat always picks up the first `[ ]` milestone.
 
 ## Completed
 
-### [x] Milestone 3 — Deterministic Rhyme Extraction Engine
+One line per milestone. The full history — what was built, the key decisions and why,
+before/after examples — lives in `DECISIONS.md` (milestone sections of the same name);
+this list is only the index.
 
-- `extract_rhyme_unit()` with `stressed` mode
-- `extract_end_words()` reading from lyrics `.txt` file
-- End-of-line word detection from TextGrid
-- Hard clustering with greedy threshold algorithm
-- `generate_rhyme_html()` — colour-coded HTML output per rhyme cluster
-- `debug_rhyme_analysis()` and `evaluate_rhyme_detection()` for testing
+- [x] **M3 — Deterministic Rhyme Extraction Engine** — first end-to-end chain:
+  stressed-mode rhyme units, end-of-line word detection, greedy threshold clustering,
+  colour-coded HTML output.
 
-### [x] Milestone 4 — Controlled Testing Framework
+- [x] **M4 — Controlled Testing Framework** — sound/underground test verse,
+  expected-cluster annotation and accuracy evaluation, debug mode.
+- [x] **M5 — Similarity Refinement Layer** — similarity upgraded from boolean to a
+  continuous 0.0–1.0 scale; similarity matrix built internally.
+- [x] **M6 — Multi-Syllable Expansion** — `RHYME_MODE` config
+  (`stressed` / `stressed_plus` / `entire_word`) with mode-aware thresholds.
+- [x] **Intra-milestone fixes (M6→M7)** — `min_len` denominator, `stressed` routed
+  through tail similarity, real `stressed_plus` extraction, `get_threshold()` wiring.
 
-- Test dataset: "sound/underground/mound/flight/tonight" verse
-- `debug_rhyme_analysis()` debug mode
-- Expected cluster annotation and accuracy evaluation
-- Edge case coverage: multi-syllable words, secondary stress
+- [x] **M7 — Internal Rhymes** — `DETECTION_MODE` (`end_only` / `full_line`),
+  `extract_rhyme_candidates()` with no word-level filter, line-grouped HTML rendering.
 
-### [x] Milestone 5 — Similarity Refinement Layer
+- [x] **M8 — Intelligent Rhyme Rendering** — suffix-only highlighting
+  (`find_rhyme_suffix_span()`) and the render-time cluster quality gate
+  (`filter_clusters()`).
+- [x] **M9 — Slant & Phoneme-Class Similarity** — hand-coded phoneme class table giving
+  near-rhymes partial credit (superseded by panphon in M11).
 
-- Similarity scoring upgraded from boolean to continuous 0.0–1.0 scale
-- `compute_similarity_pairs()` and `build_similarity_matrix()`
-- `longest_common_tail_similarity()` as the core scoring function
-- Similarity matrix computed internally (heatmap visualisation deferred)
-
-### [x] Milestone 6 — Multi-Syllable Expansion
-
-- `RHYME_MODE` config variable: `"stressed"` / `"stressed_plus"` / `"entire_word"`
-- `"stressed_plus"` implemented: walks back to preceding vowel for richer rhyme unit
-- Mode-aware thresholds via `get_threshold(rhyme_mode)` in `clustering.py`
-- `SIMILARITY_THRESHOLD_STRESSED_PLUS = 0.5` (mathematically justified)
-- All three modes pass 4/4 accuracy on test verse
-
-### [x] Intra-milestone fixes (between M6 and M7)
-
-- `longest_common_tail_similarity` denominator fixed: `max_len` → `min_len`
-- `rhyme_similarity()` routing fixed: `"stressed"` now uses tail similarity,
-  retiring the broken vowel/coda/length weighted scorer
-- `"stressed_plus"` extraction was a placeholder (copy of `"stressed"`) — now properly
-  implemented
-- `get_threshold()` wired into notebook Section 6
-
-### [x] Milestone 7 — Internal Rhymes
-
-- `DETECTION_MODE` config variable: `"end_only"` / `"full_line"`
-- `extract_rhyme_candidates()` replacing `extract_end_words()` as the primary function
-- `"full_line"` mode extracts every word in every line with no word-level filter
-- Empty phoneme / empty rhyme unit guard (data quality, not linguistic filter)
-- `is_line_end` and `word_index` fields added to candidate dicts
-- `extract_end_words()` retained as a backwards-compatibility wrapper
-- `generate_rhyme_html()` rewritten to group candidates by line and render each
-  line once with all highlighted words inline — fixed staircase/repetition bug
-- `DETECTION_MODE` passed through to `generate_rhyme_html()` from notebook Section 7
-- Threshold tuning: `stressed_plus` threshold too permissive for full word pool;
-  use `"stressed"` mode at `0.7` threshold for `"full_line"` mode
-- Test verse: Eminem "Ja shit" quatrain — dense internal `-it` rhyme chain
-
-### [x] Milestone 8 — Intelligent Rhyme Rendering
-
-- `find_rhyme_suffix_span()` added to `html_generation.py` — greedy phoneme-to-grapheme
-  aligner; returns `(start_char, end_char)` of the rhyming suffix within the word string
-- `filter_clusters()` added to `html_generation.py` — render-time quality gate:
-  passes clusters with rhyme unit depth >= 2 phonemes AND (>= 2 members across >= 2
-  lines OR >= 3 members total); singletons suppressed automatically
-- `generate_rhyme_html()` updated: calls both helpers, adds `min_phonemes` and `debug`
-  parameters, fully backwards-compatible
-- Grapheme aligner chosen over TextGrid timecodes — timecodes don't map to character
-  positions directly; aligner is simpler, self-contained, and equally accurate
-- Test result: `-ound` (5 members), `-oud` (3 members), `-ight` (9 members) pass;
-  all singletons and shallow clusters blocked
-
-### [x] Milestone 9 — Slant & Phoneme-Class Similarity
-
-**Goal:** detect near-rhymes (slant rhymes) by grouping phonemes into classes.
-
-**What was done:**
-- Defined phoneme class map (stops, fricatives, nasals, liquids, glides, vowel families)
-- Upgraded `longest_common_tail_similarity()` to give partial credit for class matches:
-  e.g. T and D (both alveolar stops) score 0.7; T and S (stop vs fricative) score 0.0
-- Class weights defined as constants (`SAME_CLASS_SCORE = 0.7`, `SAME_SUPERCLASS_SCORE = 0.4`)
-- Verified slant rhyme detection without over-merging unrelated clusters
-- Tested on the sound/underground verse with known rhyme families
-
-**Why this mattered:** rap frequently uses near-rhymes as intentional craft. Treating
-them as non-rhymes produces false negatives. This is where the system starts to
-reflect actual rhyme sophistication.
-
-### [x] Milestone 10 — Switch MFA to IPA
-
-**What was done:**
-- MFA alignment switched from `english_us_arpa` to the `english_mfa` IPA model
-- TextGrid `phones` tier now carries IPA symbols (`aw`, `aj`, `ɹ`, `ð`, …)
-- `OUTPUT_TEXTGRID_PATH` renamed to `input.TextGrid` (MFA naming convention)
-- `normalize_phoneme()` rewritten to strip IPA stress markers (`ˈ`, `ˌ`) instead
-  of ARPAbet digits
-- `extract_rhyme_unit()` rewritten — uses the rightmost IPA vowel as stress anchor
-  (IPA has no per-vowel stress digits); `_IPA_VOWELS` set + `_is_ipa_vowel()` helper
-  added to `rhyme_extraction.py`
-- `.gitignore` extended (`.claude/`, `_debug_*`, `kb/`); notebook headless command
-  in `CLAUDE.md` updated with `--kernel_name`
-- Notebook re-executed end-to-end; HTML regenerated
-
-**Known limitation (deferred to M11):** `PHONEME_CLASSES` is still ARPAbet-keyed
-and not consulted on IPA input — slant scoring collapses to identity-only
-(1.0 / 0.0). The `-ound` / `-oud` / `-ight` clusters survive because their tails
-match exactly. M11 deletes the class table outright, so patching it would be
-throwaway work.
-
-### [x] Milestone 11 — Replace Similarity Engine with panphon
-
-**What was done:**
-- Deleted the hand-coded `PHONEME_CLASSES` table, score constants, and the
-  tail-walk scorers from `similarity_engine.py`
-- New `rhyme_unit_similarity()` scores rhyme units with panphon's weighted
-  feature edit distance (`min_edit_distance`): weighted substitution cost plus
-  a bounded insert/delete penalty, normalised by sound count
-- Two selectable methods via config constants — **D** (flat penalty, default
-  0.75) and **C** (capped weighted cost); raw scores kept
-- `phoneme_similarity()` reimplemented on panphon features; `rhyme_similarity()`
-  is now mode-agnostic
-- `filter_clusters()` gates on *deep* members so bare vowels ("I") stay in a
-  cluster without blocking it
-- Clustering threshold kept at 0.7 (**Option B**) → -ound / -oud merge into one
-  "ow-ending" family; diphthong-as-one and bare-vowel handling deferred (M17 / M13)
-- Tests: `python/tests/` (16 passing); notebook re-run end-to-end, both families render
-
-**Decision detail:** see `DECISIONS.md` → "Milestone 11 — Replace Similarity Engine with panphon".
-
-### [x] Milestone 12 — Assonance-First (Vowel-Weighted) Similarity
-
-**What was done:**
-- Added the **coda-discount setting** `c` (default 0.3) to `rhyme_unit_similarity`:
-  consonant costs (insert/delete a consonant, or substitute one consonant for another)
-  are multiplied by `c`; vowel costs and vowel↔consonant substitutions stay full cost.
-  `c = 1.0` reproduces pre-M12 behaviour; kept a swappable parameter for M20.
-- `cluster_rhymes` switched to **average-linkage** (a word joins only if its mean
-  similarity to all current members clears the threshold).
-- New `python/probes/` diagnostics folder (`probe_clusters.py`, incl. an experimental
-  windowed/drift linkage kept for M17).
-- Tests: coda-discount + average-linkage merge/chaining-rejection (42 passing);
-  notebook re-run end-to-end.
-
-**Result (short-i verse, `c = 0.3`):** the scheme merges into one 17-word family
-(11/11 of *with/clip/hip/gripped/width/tip/slit/it/chips/fit/ultimate*), plus 6 more
-words that genuinely share the short-i vowel (*explosive, give, in, is, still, think*) —
-correct matches, not noise. Refining them is later work: M14 (stress) down-weights ones
-whose vowel is unstressed; M13/M17 surface the multi-word compound schemes some belong
-to. Single-linkage was tried first but chained the whole verse into one 79-word blob, so
-average-linkage was adopted.
-
-**Decision detail:** see `DECISIONS.md` → "Milestone 12 — Assonance-First (Vowel-Weighted) Similarity".
+- [x] **M10 — Switch MFA to IPA** — alignment moved to the `english_mfa` IPA model;
+  phoneme normalisation and rhyme-unit extraction rewritten for IPA.
+- [x] **M11 — Replace Similarity Engine with panphon** — weighted feature edit distance
+  scorer (method D@0.75), hand-coded class table deleted, deep-member render gate,
+  threshold kept at 0.7 (Option B).
+- [x] **M12 — Assonance-First (Vowel-Weighted) Similarity** — coda-discount `c = 0.3`
+  (vowels drive the score), average-linkage clustering (single-linkage chained),
+  `python/probes/` diagnostics folder.
 
 ---
 
@@ -368,6 +253,8 @@ full panphon scorer is stable.
 > word-level rhyme unit **are** being retired (in M13), so the earlier "keep the
 > word-based engine" framing no longer holds. The two orphaned items — the `ignites`
 > false-negative and the windowed/drift linkage — now live under this reduced M17.
+> The phoneme-stream pipeline once planned as a separate repo (old M18 numbering) is
+> likewise subsumed here: it is this milestone's detection method, not a parallel project.
 >
 > **Original status (2026-06-07), kept for history:** *M14 delivers whole-word rhyme
 > within word boundaries; M17's only irreplaceable capability is cross-word compound

@@ -14,15 +14,9 @@ enough context to continue without re-litigating settled questions.
 
 ## Project overview
 
-Verse DNA is an audio-aligned phoneme extraction and rhyme structure analysis engine.
-The near-term goal is end-rhyme detection and cluster visualization for English lyrics.
-The long-term goal is a Genius-like web app where any song can be analysed for its
-rhyme scheme, scored for rhyme complexity, and displayed with rhyming words highlighted
-in matching colours.
-
-Music analysis (tonality, tempo, etc.) is explicitly out of scope for now.
-The system is English-only while MFA + ARPAbet is being used; other languages are a
-future concern requiring different acoustic models.
+This file is the **past** — what was decided and why. The canonical project description
+lives in `CLAUDE.md` ("Project identity"); the public-facing overview in `README.md`;
+the **future** (milestone plan) in `ROADMAP.md`.
 
 ---
 
@@ -652,31 +646,6 @@ clustering at c = 0.3
 
 ---
 
-## Open questions / next steps
-
-- Milestone 10: switch MFA to IPA — prerequisite for panphon integration.
-- Milestone 11: replace hand-coded similarity table with panphon feature vectors.
-- Milestone 12: assonance-first (vowel-weighted) similarity — coda-discount knob `c`.
-- Milestone 13: syllable engine (boundary-free) — the syllable becomes the atomic unit
-  the pipeline clusters and colours, free across word boundaries (revives the deferred
-  M17 stream matching; retires the word-level rhyme unit).
-- Milestone 14: stress as a per-syllable prominence weight — down-weight unstressed
-  syllables on top of M13's units.
-- Milestone 15: phoneme-class letter colouring (DNA view) — default output mode.
-- Milestone 16: rgba alpha-encoded colour intensity for rhyme cluster view.
-- Milestone 17: *deferred / optional* — boundary-free phoneme-stream detection; its one
-  unique capability is cross-word compound rhymes. Word-based tail-walk is NOT retired.
-- Milestone 18: *dropped* — replaced by the living `MFA_FAILURES.md` catalogue.
-- Milestone 19: rhyme-judgment dataset — 19a passive logging (starts now) + 19b
-  incremental labelling, incl. screenshot-derived cluster memberships.
-- Milestone 21: complexity scoring tied to OUTPUT_MODE = "rhyme" cluster output.
-- Milestone 22: *dropped* — pairwise cluster-identity evaluation pulled forward;
-  folder-grouping + CLI deferred to a small pre-M23 task; no new modularity rule.
-- Phoneme-stream repo: separate development track.
-- Language support: English only for now.
-
----
-
 ## Architectural decision: move to IPA + panphon (agreed before Milestone 10)
 
 ### What changes and why
@@ -735,52 +704,6 @@ and non-rhyme-pair scores — analogous to Otsu's method in image thresholding).
 This is deferred until the panphon scorer is stable; the threshold is kept as a
 manually set constant for now.
 
-### DNA view — Milestone 15 design decisions
-
-- **Phoneme classes:** panphon's built-in feature categories are used directly as
-  the colour classes. Classes are linguistically defined and stable across songs —
-  no clustering step, no per-verse variation.
-- **Silent letters:** letters with no corresponding phoneme (e.g. the `e` in *phone*)
-  receive no colour (transparent/unstyled). They are visually neutral.
-- **Digraphs:** both letters of a multi-letter grapheme (e.g. `sh`, `th`) share the
-  colour of the single phoneme they represent.
-- **Output mode switch:** `OUTPUT_MODE = "dna"` (default) / `"rhyme"` (cluster view).
-
-### Rhyme cluster view — Milestone 16 design decisions
-
-Rather than treating cluster membership as binary (in / out), each word's highlight
-will use `rgba(r, g, b, alpha)` where alpha encodes the word's average pairwise
-similarity to other members of its cluster. Perfect rhymes render at full opacity;
-slant rhymes at partial opacity. This reflects the continuous nature of rhyme without
-requiring a second threshold.
-
-Hue assignment will also be similarity-driven: phonetically related clusters (e.g.
-`-oud` / `-ound`) receive hues that are close together on the colour wheel.
-
-### Tail-walk retirement — Milestone 17 (DEFERRED 2026-06-07)
-
-**Update (2026-06-07):** M17 is now **deferred / optional** and the tail-walk is **not**
-being retired. M14 delivers whole-word, multi-syllable rhyme *within* word boundaries,
-which covers the analysis we want; the word-based engine stays. M17's only irreplaceable
-capability is detecting rhymes *across* word boundaries (compound rhymes). Revisit only if
-that becomes worth the boundary-free rewrite. The rest of this section is kept as the
-design reference for if/when M17 is revived.
-
-`longest_common_tail_similarity()`, `extract_rhyme_unit()`, and
-`extract_rhyme_candidates()` were to be retired in Milestone 17 in favour of a
-boundary-free, stream-based pattern detector.
-
-**Why:** the tail-walk is anchored at word endings and compares fixed-length phoneme
-sequences position by position. It cannot handle insertions (the `-oud` / `-ound`
-problem), cannot detect multi-word rhyme schemes (e.g. *"document shredder"* /
-*"you meant shredder"*), and each attempted fix adds a new magic constant and a new
-failure mode. The approach is too rigid to expand upon without accumulating patches.
-
-**What replaces it:** a phoneme-stream detector that treats the full lyric piece as
-one continuous IPA sequence, finds similar subsequences at any position, and maps
-them back to grapheme positions. The exact algorithm (sliding window, local sequence
-alignment, or similar) is to be decided at the start of Milestone 17.
-
-The phoneme-stream pipeline that was originally planned as a separate repo (old M18)
-is subsumed by this approach — it is now the core detection method, not a parallel
-experiment.
+Forward-looking design for the milestones this decision feeds (M15 DNA view, M16
+colour intensity, M17 stream detection) lives in `ROADMAP.md` under those milestones —
+the future is recorded there, not here.
