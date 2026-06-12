@@ -58,6 +58,10 @@ this list is only the index.
 - [x] **M12 — Assonance-First (Vowel-Weighted) Similarity** — coda-discount `c = 0.3`
   (vowels drive the score), average-linkage clustering (single-linkage chained),
   `python/probes/` diagnostics folder.
+- [x] **M13 — Syllable Engine (boundary-free, syllable-as-unit)** — maximal-onset
+  syllabifier on panphon sonority, role-aware syllable scorer (onset 0 / nucleus 1.0 /
+  coda 0.3) with effective-length normalisation, free cross-word clustering at
+  threshold 0.65, IPA-aware per-syllable colour spans as the new primary view.
 
 ---
 
@@ -73,85 +77,6 @@ this list is only the index.
 > are retired). The milestones were then **renumbered so the numbers follow work order**
 > (M13 = syllables, M14 = stress); earlier dated notes below that say "M14 = syllables /
 > M13 = stress" are pre-renumber snapshots and are kept as history.
-
-### [ ] Milestone 13 — Syllable Engine (boundary-free, syllable-as-unit)
-
-> **In progress (2026-06-09).** Slices 1–3 + clustering plumbing are committed on
-> `m13-syllable-engine`; slice 4 (clustering + per-syllable HTML) is underway. Three
-> slice-4 forks are signed off (full detail in `DECISIONS.md` → "Milestone 13 — Syllable
-> Engine (IN PROGRESS)"): (1) **parallel notebook wiring** — the word path and the M19a
-> pair-logging in Section 5 stay untouched, the syllable engine is added as new cells and
-> becomes the primary view; (2) **full IPA-aware aligner** for per-syllable colour spans
-> (the current aligner is ARPAbet-keyed); (3) **normalisation ships on `maxlen`**, then
-> the verse's real pairwise score distribution is measured and effective (weighted)
-> length is adopted only if it changes the clusters (with a zero-guard + threshold
-> re-sweep).
-
-**Goal:** make the **syllable** the atomic unit the pipeline clusters and colours,
-replacing the word-level single-tail rhyme unit. Syllables cluster **freely across word
-and line boundaries**, so a long word participates in a scheme through *any* of its
-syllables and cross-word compound rhymes start to surface.
-
-**What this retires:** `extract_rhyme_unit` (word tail), the word-level `rhyme_unit`,
-and the word-as-scored-unit assumption running through `compute_similarity_pairs` /
-`build_similarity_matrix` / clustering / HTML / evaluation. (The tail-walk
-`longest_common_tail_similarity` was already retired in M11.) `extract_rhyme_candidates`
-is reworked to emit syllable units, each keeping a back-pointer to its source word +
-character span (needed for colouring).
-
-Subgoals / agreed design (grill 2026-06-08):
-- **Syllabifier** — a maximal-onset splitter built on **panphon's IPA-native sonority**
-  (no new dependency; syllabipy was tested and rejected — it returns `[]` on IPA input).
-  Each vowel is a nucleus; a consonant cluster between two vowels gives its
-  rising-sonority tail to the *next* syllable's onset, the rest become the coda.
-  Diphthongs (`aj`, `aw`) stay one nucleus via the existing vowel detector (panphon's
-  sonority mis-scores the diphthong token). The sonority threshold becomes an
-  M20-tunable knob.
-- **Comparison unit = the full syllable**, scored through the existing panphon weighted
-  feature-edit-distance scorer, now made **role-aware** with a small family of knobs
-  (all swap-ready for M20):
-  - onset weight `o = 0` (new — onsets ignored for now; tunable later)
-  - nucleus / vowel = full weight
-  - coda discount `c = 0.3` (M12, unchanged)
-  - Effect: *clip* / *grip* = 1.0 (onsets dropped) while the coda still contributes a
-    graded amount.
-- **Free cross-word clustering** — syllable units cluster regardless of which word or
-  line they came from.
-- **Clustering rule** — average-linkage (chaining risk is *higher* with short syllable
-  units, so it is even more justified than in M12), threshold carried at **0.7** but
-  **re-swept** on the verse and reported.
-- **Rendering** — per-syllable independent colours: a multi-syllable word can wear
-  several colours, one per syllable's cluster (the literal "Verse DNA" texture). Extend
-  the grapheme aligner from suffix-only to per-syllable character spans (also groundwork
-  for M15).
-
-**What is left for M17 (still deferred / optional):** stitching matched syllables into
-*contiguous multi-syllable run* objects — recognising *load-the-clip* ↔ *both-are-gripped*
-as **one** rhyme rather than three coincidental syllable matches. The cross-word
-syllable *matches* themselves are now M13's job; M17's orphaned items (the `ignites`
-false-negative and the windowed/drift linkage) move under that reduced M17.
-
-**Before/after (real data, current verse):**
-```
-"explosive"  (english_mfa: ɛ k s p l o s i v)
-- Now (tail-only):  one unit "-ɪv"  → sits weakly in the short-i family, one colour
-- After M13:        ex · plo · sive
-                    plo  → "o" family (load / both …)   [colour 1]
-                    sive → short-i family (clip / tip)  [colour 2; stress later fades it]
-```
-
-**Validation (definition of done — targeted behavioural checks):** splitter unit tests
-(`ultimate → ul·ti·mate`, `explosive → ex·plo·sive`); asserted cross-word wins
-(`clip ~ gripped`, `load·oʊ ~ both·oʊ`); the short-i monosyllable family preserved;
-`o = 0` verified; notebook runs clean end-to-end (Rule 7) on the *load the clip* verse.
-Build in independently-runnable slices: (1) splitter + tests, (2) syllable extraction
-replacing `extract_rhyme_unit`, (3) role-aware scorer with `o`, (4) clustering +
-per-syllable HTML. A formal accuracy metric is deferred.
-
-**Depends on:** Milestone 12 (assonance scorer), Milestone 11 (panphon). Feeds the
-reduced Milestone 17 (run stitching).
-
----
 
 ### [ ] Milestone 14 — Stress as a Per-Syllable Prominence Weight (after M13)
 
