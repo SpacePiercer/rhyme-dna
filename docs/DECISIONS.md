@@ -644,14 +644,13 @@ clustering at c = 0.3
   average-linkage: 17 words = 11/11 target + 6 more genuine short-i matches -> shipped
 ```
 
-### Milestone 13 — Syllable Engine (IN PROGRESS)
+### Milestone 13 — Syllable Engine (boundary-free, syllable-as-unit)
 
-**Status (2026-06-09):** slices 1–3 plus the clustering plumbing are committed on
-`m13-syllable-engine`; slice 4 (clustering + per-syllable HTML) is in progress. This
-section records the slice-4 sign-off decisions ahead of completion; it will be folded
-into a final M13 section per Rule 5 when the milestone closes.
+**Completed 2026-06-10** (PR #35, branch `m13-syllable-engine`). The syllable is now
+the atomic unit the pipeline clusters and colours; syllables cluster freely across
+word and line boundaries. Built in four independently-runnable slices.
 
-**Built so far (slices 1–3 + clustering plumbing):**
+**What was built (slices 1–3 + clustering plumbing):**
 
 - `python/syllabification.py` — `syllabify()`, a maximal-onset splitter driven by
   panphon's IPA-native sonority. Nuclei are found with `_is_ipa_vowel` (so diphthongs
@@ -669,7 +668,34 @@ into a final M13 section per Rule 5 when the milestone closes.
   words, so the word string is no longer a usable key). The matrix feeds
   `cluster_rhymes` unchanged.
 
-**Slice-4 sign-off decisions (2026-06-09 session):**
+**What was built (slice 4 — clustering + per-syllable HTML):**
+
+- `align_phonemes_to_chars()` and `find_syllable_spans()` in `html_generation.py` —
+  a proper IPA-aware phoneme→letter aligner replacing the ARPAbet-keyed
+  `find_rhyme_suffix_span` for the syllable view. Maps each syllable's
+  `[phoneme_start, phoneme_end)` range to a character span inside the word, so a
+  multi-syllable word can wear several colours, one per syllable's cluster.
+  Groundwork for the M15 DNA view.
+- `filter_syllable_clusters()` + `generate_syllable_html()` — the render-time quality
+  gate and per-syllable colour-span renderer for the syllable view
+  (`data/generated_html/syllable_visualization.html`).
+- Notebook **Section 8** — the syllable engine wired in as new cells, the new
+  *primary* visualization. The word-based path (Sections 4–7) and the M19a passive
+  logging in Section 5 stay untouched and keep running in parallel.
+- **Effective-length normalisation** in `syllable_similarity()` — the edit-distance
+  denominator switched from raw segment count (`maxlen`) to the effective (weighted)
+  length `eff_len = #onset_segs × o + #nucleus_segs × 1.0 + #coda_segs × c`, pair
+  denominator `max(eff_len(A), eff_len(B))`, with a zero-guard falling back to raw
+  count for an all-zero-weight syllable. Regression tests lock in the
+  onset-length invariant and the zero-guard.
+- `python/probes/probe_syllable_scores.py` — self-contained probe recording the
+  normalisation measurement: dumps the pairwise score distribution under both
+  denominators and compares cluster memberships. Defines both denominators locally
+  so it stays reproducible regardless of the engine's current scorer.
+- `SYLLABLE_THRESHOLD = 0.65` in notebook Section 1 — re-swept for the new
+  denominator (see decision 3 below).
+
+**Key decisions (and why):**
 
 1. **Parallel notebook wiring.** The word-based path (Sections 4–7) and the M19a passive
    logging in Section 5 (3,422 word-pairs → `data/scored_pairs.jsonl`) stay **untouched**.
@@ -678,26 +704,57 @@ into a final M13 section per Rule 5 when the milestone closes.
 
 2. **Full IPA-aware aligner.** The existing `find_rhyme_suffix_span` is ARPAbet-keyed and
    silently falls back to one-char-per-phoneme on IPA input (spans already approximate).
-   Slice 4 builds a proper IPA phoneme→letter aligner for accurate **per-syllable** colour
-   spans, so a multi-syllable word can wear several colours, one per syllable's cluster.
-   This is also groundwork for the M15 DNA view.
+   Slice 4 built a proper IPA phoneme→letter aligner for accurate **per-syllable** colour
+   spans. This is also groundwork for the M15 DNA view.
 
-3. **Normalisation: ship on `maxlen`, measure before switching.** The more principled
-   denominator is the **effective (weighted) length**
-   `eff_len = #onset_segs × o + #nucleus_segs × nuc + #coda_segs × c`, with a pair
-   denominator of `max(eff_len(A), eff_len(B))`. It removes onset-length inflation —
-   worked example: `strick` vs `ip` scores `1 − 0.45/5 = 0.91` and `tick` vs `ip` scores
-   `1 − 0.45/3 = 0.85` under `maxlen`, but both collapse to `1 − 0.45/1.3 = 0.654` under
-   effective length. **Decision (option a):** run slice 4 on `maxlen`, dump the verse's
-   real pairwise score distribution, and adopt effective length **only if it changes the
-   clusters** — then as an isolated change with a divide-by-zero guard (eff_len can be 0)
-   and a threshold re-sweep. Swap-ready for M20 either way.
-   - Caveats noted for the effective-length option: panphon's substitution cost is
-     unbounded, so a smaller denominator floors weak pairs at 0 harder; the method-D
-     delete penalty (0.75) does not equal the nucleus budget (1.0); and clusters are
-     decided by average-linkage at a swept threshold, which cares about the *ordering* of
-     rhyme vs non-rhyme pairs, not their absolute values — so the inflation only flips
-     orderings when comparing pairs with very different onset lengths.
+3. **Normalisation: shipped on `maxlen`, measured, then switched to effective length.**
+   The 2026-06-09 sign-off was "run slice 4 on `maxlen`, dump the verse's real pairwise
+   score distribution, and adopt effective length **only if it changes the clusters**."
+   The measurement (recorded in `probe_syllable_scores.py`) showed it **does** change
+   them: `maxlen` lets a long onset inflate the score (worked example: `strick` vs `ip`
+   scores `1 − 0.45/5 = 0.91` and `tick` vs `ip` scores `1 − 0.45/3 = 0.85` under
+   `maxlen`, but both collapse to `1 − 0.45/1.3 = 0.654` under effective length), and
+   at threshold 0.70 `maxlen` produced an `e`/`eː` over-merge that effective length
+   removes. Adopted as an isolated change with the divide-by-zero guard and a threshold
+   re-sweep, exactly as signed off. Swap-ready for M20.
+
+4. **Syllable threshold 0.65** (vs the word path's 0.7). Re-swept on the verse after
+   adopting effective-length normalisation: 0.65 keeps both asserted cross-word wins
+   (*clip* ~ *gripped*, *load* ~ *both*) while giving tight, well-separated clusters
+   (22 vs 11 at other settings), with the `e`/`eː` over-merge gone. The word path's
+   threshold stays 0.7 — the two scorers produce different score ranges.
+
+**Before/after (real data, "load the clip" verse):**
+
+```
+"explosive"  (english_mfa: ɛ k s p l o s i v)
+- Before (word path, tail-only): one unit "-iv" → one colour, weak short-i member
+- After M13:  ex·plo·sive = three units, clustered independently:
+              ex  (ɛks)  → C (just / utmost / days …)
+              plo (plo)  → own cluster (blocked at render)
+              sive (siv) → B, the short-i family (clip / hip / gripped / tip …)
+
+onset-length inflation (effective-length normalisation)
+- maxlen:           strick/ip = 0.91   vs  tick/ip = 0.85  (longer onset scored higher)
+- effective length: both = 0.654       (onsets no longer inflate the score)
+
+verse run (130 syllable units, 8 385 pairs, threshold 0.65):
+- 13 clusters pass the render gate; cross-word compound-rhyme syllables now visible:
+  load·both·hold·shoulder·broke·utmost(·most)·those·over·so·joe·oprah in one family
+```
+
+**Known issues carried forward (2026-06-10 run, to triage in M14 or fix branches):**
+
+1. *throat / cutthroat / poker / supposed* form their own cluster (N) instead of
+   joining the load/hold/shoulder family (F) — `oː` vs `əw` separation.
+2. Cluster A is broad: function words (*but, as, the, on, are, at, a, and, my* …)
+   share the bare `a` vowel. Genuine assonance by the scorer's spec; stress
+   weighting (M14) is the planned refinement, not exclusion.
+3. *with / width / tip / -mate* sit in cluster E, separate from the clip/gripped
+   cluster (B) — `ɪ` vs `i` separation.
+4. Syllabifier mis-splits geminate/compound words: `cutthroat` → `kə + t̪ɹoːʈ`
+   (should be `cut·throat`), `utmost` → `ɐ + tməwst` (should be `ut·most`),
+   `supposed` → `sə + poːsʈ` (should be `sup·posed`).
 
 ---
 
