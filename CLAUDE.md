@@ -20,6 +20,9 @@ All project knowledge, navigation, and context live in basic-memory — not here
 
 1. Invoke the `/caveman` skill — every session runs in compressed-communication mode
 2. Call `read_note "rhyme-dna/manifest"` — then follow every step in its startup sequence
+3. Skim the 1–2 most recent files in `progress/` for unfinished threads (work that
+   ended mid-task, deferred items, blockers) — for decision history use
+   `docs/DECISIONS.md` instead
 
 If basic-memory MCP tools are unavailable, fall back to reading `docs/DECISIONS.md`,
 `docs/ROADMAP.md`, `docs/GLOSSARY.md`, `docs/LESSONS.md` directly, then proceed.
