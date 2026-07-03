@@ -7,7 +7,7 @@ permalink: rhyme-dna/claude
 # CLAUDE.md — Verse DNA
 
 Bootstrap script. Loaded by the Claude Code harness before every session.
-Sole job: invoke caveman mode and load the knowledge-base MANIFEST.
+Sole job: invoke ponytail mode and load the knowledge-base MANIFEST.
 All project knowledge, navigation, and context live in basic-memory — not here.
 
 @CONSTITUTION.md
@@ -18,7 +18,7 @@ All project knowledge, navigation, and context live in basic-memory — not here
 
 **Do not answer any user request before completing both steps.**
 
-1. Invoke the `/caveman` skill — every session runs in compressed-communication mode
+1. Invoke the `/ponytail` skill — every session runs in laziest-solution-that-works mode
 2. Call `read_note "rhyme-dna/manifest"` — then follow every step in its startup sequence
 3. Skim the 1–2 most recent files in `progress/` for unfinished threads (work that
    ended mid-task, deferred items, blockers) — for decision history use
