@@ -6,187 +6,101 @@ permalink: rhyme-dna/claude
 
 # CLAUDE.md — Verse DNA
 
-This file is the operational configuration for every chat in this project (auto-loaded
-each session): startup sequence, environment commands, code style, and git workflow.
-The fixed conversation rules (Rules 1–13 and "What not to do") live in
-`CONSTITUTION.md`, imported below so both files load automatically.
+Bootstrap script. Loaded by the Claude Code harness before every session.
+Sole job: invoke caveman mode and load the knowledge-base MANIFEST.
+All project knowledge, navigation, and context live in basic-memory — not here.
 
 @CONSTITUTION.md
 
-The project's decisions, roadmap, glossary, and lessons live in the **basic-memory**
-knowledge base (project `rhyme-dna`) — load them at the start of every chat per the
-startup sequence below. The current milestone to work on is always the first one still
-marked `[ ]` in the roadmap note (`rhyme-dna/roadmap`).
+---
+
+## Startup — MANDATORY
+
+**Do not answer any user request before completing both steps.**
+
+1. Invoke the `/caveman` skill — every session runs in compressed-communication mode
+2. Call `read_note "rhyme-dna/manifest"` — then follow every step in its startup sequence
+
+If basic-memory MCP tools are unavailable, fall back to reading `docs/DECISIONS.md`,
+`docs/ROADMAP.md`, `docs/GLOSSARY.md`, `docs/LESSONS.md` directly, then proceed.
 
 ---
 
-## Startup sequence for every new chat
+## Operational constants
 
-The project's knowledge lives in the **basic-memory** knowledge base (project
-`rhyme-dna`), which indexes the governance notes in this repo. Retrieve from it rather
-than reading raw files:
+These live here because the harness needs them, not because they are knowledge.
 
-0. Invoke the `/caveman` skill immediately — every session runs in compressed communication mode
-1. Read this file (`CLAUDE.md`) and `CONSTITUTION.md` — the standing rules (auto-loaded each session)
-2. `read_note "rhyme-dna/decisions"` — the decision log: what has been built and why
-3. `read_note "rhyme-dna/roadmap"` — identify the next incomplete milestone (the first
-   one still marked `[ ]`)
-4. `read_note "rhyme-dna/glossary"` — domain-term dictionary and the decision backlog
-5. `read_note "rhyme-dna/lessons"` — mistakes already made and corrected
-6. `search_notes "<milestone topic>"` — find KB notes relevant to the upcoming milestone
-7. Scan `progress/` folder — read all `.md` entries (excluding `README.md`) whose filename
-   date falls within the last 10 days of today's date; these give recent session context
-8. Confirm you are ready with a brief recap: current state of the project, and the
-   milestone you are about to begin
-
-If the basic-memory MCP tools are unavailable in a session, fall back to reading the same
-content from the source files in the repo (`docs/DECISIONS.md`, `docs/ROADMAP.md`,
-`docs/GLOSSARY.md`, `docs/LESSONS.md`) — they are the markdown behind these notes.
-
----
-
-## Project identity
-
-**Verse DNA** is an audio-aligned phoneme extraction and rhyme structure analysis engine
-for performance-aware lyrical analysis. The long-term goal is a Genius-like web app
-where any song can be analysed for its rhyme scheme, scored for complexity, and
-displayed with rhyming words highlighted in matching colours.
-
-The system is English-only while MFA + ARPAbet is in use. Music analysis (tonality,
-tempo, etc.) is explicitly out of scope until the lyrics engine is mature.
-
-All architectural decisions and their reasoning live in the decision-log note
-(`rhyme-dna/decisions`, source file `docs/DECISIONS.md`). The forward-looking milestone
-plan lives in the roadmap note (`rhyme-dna/roadmap`, source file `docs/ROADMAP.md`).
-
----
-
-## Running the notebook
-
-Whenever it is time to execute the notebook, run it headlessly using:
+### Running the notebook
 
 ```
 conda run -n mfa_env jupyter nbconvert --to notebook --execute rhyme-DNA.ipynb --output rhyme-DNA.ipynb --ExecutePreprocessor.timeout=120
 ```
 
-This runs all cells in order using the `mfa_env` kernel, writes output back into
-the notebook file, and allows Claude to read the results directly.
-
----
-
-## Code style preferences
+### Code style
 
 - Python only for the core pipeline
-- All logic lives in `python/` as importable modules; the notebook imports from there
+- All logic in `python/` as importable modules; notebook imports from there
 - No logic inside notebook cells — cells call functions, functions live in `.py` files
-- Every function should have a docstring
-- Debug output controlled by a `debug=False` parameter, not by commenting/uncommenting
+- Every function gets a docstring
+- Debug output via `debug=False` parameter, not commenting/uncommenting
 
----
+### Git workflow
 
-## Git workflow
+#### Branches and PR titles
 
-### Branches and PR titles
-
-Use the format `class(number)-short-description` for branches and
-`class(number): Short description` for PR titles. This follows the
-[Conventional Commits](https://www.conventionalcommits.org/) convention.
+Format: `class(number)-short-description` for branches, `class(number): Short description` for PR titles.
 
 | Class | Use for | Numbered by |
 |---|---|---|
 | `milestone` | implementing a milestone from `docs/ROADMAP.md` | milestone number |
-| `docs` | changes to planning or documentation files only (no code) | sequential from 1 |
-| `glossary` | updates to `docs/GLOSSARY.md` (terms + decision backlog); merged *after* the related milestone (see Rule 10 in `CONSTITUTION.md`) | sequential from 1 |
+| `docs` | planning/documentation changes only (no code) | sequential from 1 |
+| `glossary` | updates to `docs/GLOSSARY.md`; merged *after* the related milestone (Rule 10) | sequential from 1 |
 | `fix` | bug fix | sequential from 1 |
-| `refactor` | restructuring existing code without changing behaviour | sequential from 1 |
+| `refactor` | restructuring without behaviour change | sequential from 1 |
 | `chore` | maintenance — config, tooling, dependencies | sequential from 1 |
 
-**Examples:**
+Examples:
 ```
-Branch:   m10-ipa-switch
-PR title: milestone(10): IPA Switch
-
-Branch:   d1-roadmap-restructure
-PR title: docs(1): Roadmap Restructure and Workflow
-
-Branch:   f1-oud-ound-clustering
-PR title: fix(1): Correct -oud / -ound cluster separation
-
-Branch:   g1-m11-panphon-terms
-PR title: glossary(1): M11 panphon terms and decision backlog
+Branch:   m10-ipa-switch          PR title: milestone(10): IPA Switch
+Branch:   d1-roadmap-restructure  PR title: docs(1): Roadmap Restructure and Workflow
+Branch:   f1-oud-ound-clustering  PR title: fix(1): Correct -oud / -ound cluster separation
+Branch:   g1-m11-panphon-terms    PR title: glossary(1): M11 panphon terms and decision backlog
 ```
 
-Create the branch at the start of the work session, before writing any code or
-making any changes. Merge to `main` only when the work is complete and tested.
+Create the branch before writing any code. Merge to `main` only when work is complete and tested.
 
-### Mid-milestone rule and documentation updates
+#### Mid-milestone doc updates
 
-When the rules (`CLAUDE.md`, `CONSTITUTION.md`) or other planning/documentation files
-need updating in the middle of an ongoing milestone, **do not commit the update onto
-the milestone branch**. Instead:
+Rule/doc changes during a milestone → separate `docs(N)` branch off `main` → merge first → rebase milestone branch onto updated `main` → resume.
 
-1. Create a separate `docs(N)` branch off `main` for the rule/doc change.
-2. Commit the change there and merge it into `main` **first**.
-3. Rebase the in-progress milestone branch onto the updated `main` so it picks up the
-   new rules.
-4. Resume milestone work on the rebased branch.
+#### Commits
 
-**Why this exists:** rule and documentation changes are independent of milestone code
-and should land cleanly on `main` without being entangled in unfinished milestone work.
-Rebasing the milestone branch afterwards keeps it building on the latest rules.
+Commit after every self-contained change. A commit should be reviewable in under two minutes. Remind the user to commit if significant code was written with no commit yet.
 
-### Commits
+#### GitHub CLI
 
-Commit **frequently** — after every self-contained change (a new function, a bug fix,
-a passing test). A commit should be reviewable in under two minutes. If the diff is
-large enough that you need to scroll to understand it, it should have been two commits.
+Always use `gh` CLI for all GitHub interactions. Repo: `SpacePiercer/rhyme-dna`.
 
-Remind the user to commit if a chat session has produced significant code changes
-and no commit has been made yet.
+**Never merge a PR** — user always merges manually. Do not run `gh pr merge` or any merge command. Create/update PR → report it ready → stop.
 
-### GitHub CLI
+**Always include the PR URL** in your message when creating or updating a PR.
 
-Always use the `gh` CLI for all GitHub interactions — creating PRs, viewing PRs,
-checking CI status, listing issues, etc. Never use the GitHub web UI
-instructions or raw `git push` + manual PR creation. The repo is
-`SpacePiercer/rhyme-dna`.
+#### Pull request template
 
-**Never merge a PR.** I (the user) always merge PRs manually. Do not run
-`gh pr merge`, any other merge command, or otherwise merge a branch into `main`.
-Your job ends at creating/updating the PR and reporting it is ready; then stop and
-let me do the merge. After I confirm a PR is merged, you may continue (e.g. pull
-`main`, rebase, start the next branch).
+One PR per milestone. PR title: `Milestone N: Short description matching roadmap heading`.
 
-**Always give me the PR link.** Whenever you create or update a PR, include its full
-URL in your message so I can open it quickly.
-
-### Pull requests
-
-One PR per milestone. Keep milestones short enough that the PR diff is readable in
-a single sitting. If a milestone grows large during planning, propose splitting it
-into two before implementation begins.
-
-**PR title format:**
-```
-Milestone N: Short description matching the milestone heading
-```
-
-**PR description template:**
 ```
 ## Motivations
-Why this change was needed — the problem or gap it addresses.
+Why this change was needed.
 
 ## Changes
 What was built or modified. Bullet list of files/functions changed.
 
 ## Testing
-How the change was verified — test verses used, accuracy results, spot-checks.
+How the change was verified — test verses, accuracy results, spot-checks.
 
 ## Considerations
-Trade-offs made, known limitations, deferred items, and anything a reviewer
-should keep in mind when reading the diff.
+Trade-offs, known limitations, deferred items.
 ```
 
-When asked to create a PR, populate this template using the milestone description
-from the roadmap note (`rhyme-dna/roadmap`) and the decisions recorded in the
-decision-log note (`rhyme-dna/decisions`) for that milestone.
+Populate from `rhyme-dna/roadmap` and `rhyme-dna/decisions` when creating a PR.
