@@ -98,3 +98,7 @@ Read source files directly from the repo:
 - leads_to [[Knowledge Map]]
 - relates_to [[Conventions]]
 - relates_to [[Pipeline Architecture]]
+
+## Canonical store rule
+
+`docs/` source files are canonical truth for rules, decisions, and docs; `rhyme-dna/*` notes re-index from them on sync. Write-path: edit the `docs/` source file. Use `edit_note` only for notes that have no on-disk source file.

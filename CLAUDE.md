@@ -20,12 +20,21 @@ All project knowledge, navigation, and context live in basic-memory — not here
 
 1. Invoke the `/ponytail` skill — every session runs in laziest-solution-that-works mode
 2. Call `read_note "rhyme-dna/manifest"` — then follow every step in its startup sequence
-3. Skim the 1–2 most recent files in `progress/` for unfinished threads (work that
+3. Read `CURRENT.md` — it is the single source of truth for the verse/sample being worked on now, the active milestone, and the current branch
+4. Skim the 1–2 most recent files in `progress/` for unfinished threads (work that
    ended mid-task, deferred items, blockers) — for decision history use
    `docs/DECISIONS.md` instead
 
 If basic-memory MCP tools are unavailable, fall back to reading `docs/DECISIONS.md`,
 `docs/ROADMAP.md`, `docs/GLOSSARY.md`, `docs/LESSONS.md` directly, then proceed.
+
+---
+
+## Knowledge store — canonical rule
+
+`docs/` source files are the canonical truth for rules, decisions, and docs. The `rhyme-dna/*` notes are the search/index layer — they re-index from those source files on sync. Write-path: edit the `docs/` file directly. Use `edit_note` only for notes with no on-disk source file.
+
+Durable docs (ROADMAP, DECISIONS, GLOSSARY, LESSONS, CONSTITUTION, CLAUDE.md) must **never** name or embed the current verse/audio sample — reference `CURRENT.md` instead. Sample references rot instantly; `CURRENT.md` is overwritten at every session close.
 
 ---
 
