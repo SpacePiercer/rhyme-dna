@@ -233,3 +233,25 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+marimo/_static/
+marimo/_lsp/
+__marimo__/
+
+# --- kept locally, never published -----------------------------------
+# agent / planning / session docs
+.agents/
+.claude/
+.bmignore
+CLAUDE.md
+CONSTITUTION.md
+CURRENT.md
+MANIFEST.md
+docs/
+progress/
+kb/
+skills-lock.json
+# per-song data: audio, lyrics, alignments, scores (copyrighted material)
+data/
+*.mp3
+*.m4a
+*.wav
