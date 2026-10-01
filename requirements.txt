@@ -1,0 +1,9 @@
+# Python 3.10 (the Montreal Forced Aligner conda build pins it).
+# MFA itself comes from conda, not pip:
+#   conda create -n mfa_env -c conda-forge python=3.10 montreal-forced-aligner
+#   conda run -n mfa_env pip install -r requirements.txt
+panphon>=0.22.2
+praatio>=6.2.2
+jupyter>=1.1.1
+nbconvert>=7.17.1
+pytest>=9.1.1

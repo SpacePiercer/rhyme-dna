@@ -255,3 +255,14 @@ data/
 *.mp3
 *.m4a
 *.wav
+
+# --- standard (added 2026-09-30) ---
+*.py[cod]
+.venv/
+.env.*
+!.env.example
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
